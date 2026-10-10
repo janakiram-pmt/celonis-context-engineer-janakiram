@@ -1,0 +1,204 @@
+{
+  "$schema": "https://celonis.com/challenges/context-engineer/schema/v1.json",
+  "metadata": {
+    "name": "Procure-to-Receive Mock Dataset",
+    "version": "1.1.0",
+    "generatedFor": "Celonis Context Engineer Challenge — Senior Application Product Manager",
+    "asOfDate": "2026-09-04",
+    "currency": "EUR",
+    "description": "A small, clean, source-agnostic object model for a lightweight Procurement + Inventory scenario. Data is intentionally pre-cleansed: no nulls where a value is expected, consistent IDs, and referential integrity across all foreign keys. It covers SEVERAL materials, plants, vendors and purchase orders — most of which are perfectly healthy. Exactly one situation is a genuine risk; part of the task is to find it among the normal activity. Every object carries attributes AND a lightweight event log so that both a classical relational model and an object-centric context/semantic model can be derived from the same source. The impact and the resolution options are deliberately NOT stated in this file — derive them from the records.",
+    "conventions": {
+      "dateFormat": "ISO-8601 (YYYY-MM-DD)",
+      "timestampFormat": "ISO-8601 (YYYY-MM-DDThh:mm:ssZ, UTC)",
+      "idStyle": "Human-readable prefixed IDs. Prefixes: V- vendor, MP- material-plant, PR- purchase requirement, PDOC- purchase document, MREQ- material requirement, EVT- event.",
+      "quantityUnit": "Base unit of measure declared per MaterialPlant (all quantities in this dataset are EA / each)."
+    }
+  },
+
+  "objects": {
+    "Vendor": {
+      "description": "A supplier that fulfils purchase documents.",
+      "primaryKey": "vendorId",
+      "attributes": {
+        "vendorId": { "type": "string", "description": "Unique vendor identifier." },
+        "name": { "type": "string", "description": "Legal name of the supplier." },
+        "country": { "type": "string", "description": "ISO country of the supplying site." },
+        "avgLeadTimeDays": { "type": "integer", "description": "Vendor's historical average lead time in calendar days." },
+        "onTimeDeliveryRate": { "type": "number", "description": "Share of lines delivered on or before the confirmed date over the trailing 12 months (0.0-1.0)." },
+        "qualityRating": { "type": "string", "description": "Categorical quality tier: A (best) to C.", "enum": ["A", "B", "C"] },
+        "approvedForMaterials": { "type": "array", "items": "string", "description": "Material-plant IDs this vendor is approved to supply." }
+      },
+      "records": [
+        { "vendorId": "V-2001", "name": "Rheinmetall Components GmbH", "country": "DE", "avgLeadTimeDays": 21, "onTimeDeliveryRate": 0.72, "qualityRating": "A", "approvedForMaterials": ["MP-1010-8891", "MP-1020-8891"] },
+        { "vendorId": "V-2002", "name": "Bavaria Precision Parts AG", "country": "DE", "avgLeadTimeDays": 9, "onTimeDeliveryRate": 0.94, "qualityRating": "A", "approvedForMaterials": ["MP-1010-8891", "MP-1020-8891"] },
+        { "vendorId": "V-2003", "name": "Adriatic Castings d.o.o.", "country": "HR", "avgLeadTimeDays": 35, "onTimeDeliveryRate": 0.81, "qualityRating": "B", "approvedForMaterials": ["MP-1010-8891"] },
+        { "vendorId": "V-2004", "name": "Nordic Fasteners AB", "country": "SE", "avgLeadTimeDays": 14, "onTimeDeliveryRate": 0.90, "qualityRating": "A", "approvedForMaterials": ["MP-1010-8892", "MP-1030-8892"] },
+        { "vendorId": "V-2005", "name": "Alpine Hydraulics AG", "country": "CH", "avgLeadTimeDays": 12, "onTimeDeliveryRate": 0.88, "qualityRating": "A", "approvedForMaterials": ["MP-1020-7400"] }
+      ]
+    },
+
+    "MaterialPlant": {
+      "description": "A material managed at a specific plant (the classic material-plant combination). Carries the inventory state needed to reason about coverage: on-hand stock, safety stock, and reorder point.",
+      "primaryKey": "materialPlantId",
+      "attributes": {
+        "materialPlantId": { "type": "string", "description": "Unique material-plant identifier." },
+        "materialId": { "type": "string", "description": "Material master number." },
+        "materialDescription": { "type": "string", "description": "Human-readable material name." },
+        "plantId": { "type": "string", "description": "Plant / site identifier." },
+        "plantName": { "type": "string", "description": "Plant location name." },
+        "baseUnit": { "type": "string", "description": "Base unit of measure." },
+        "onHandQuantity": { "type": "number", "description": "Physical unrestricted stock on hand as of asOfDate." },
+        "safetyStock": { "type": "number", "description": "Minimum stock to be maintained before coverage is considered at risk." },
+        "reorderPoint": { "type": "number", "description": "Inventory level that triggers replenishment." },
+        "standardCost": { "type": "number", "description": "Standard unit cost in metadata.currency." }
+      },
+      "records": [
+        { "materialPlantId": "MP-1010-8891", "materialId": "MAT-8891", "materialDescription": "Bearing Housing, Cast", "plantId": "1010", "plantName": "Frankfurt Assembly", "baseUnit": "EA", "onHandQuantity": 120, "safetyStock": 150, "reorderPoint": 200, "standardCost": 42.5 },
+        { "materialPlantId": "MP-1020-8891", "materialId": "MAT-8891", "materialDescription": "Bearing Housing, Cast", "plantId": "1020", "plantName": "Leipzig Distribution", "baseUnit": "EA", "onHandQuantity": 260, "safetyStock": 60, "reorderPoint": 90, "standardCost": 42.5 },
+        { "materialPlantId": "MP-1010-8892", "materialId": "MAT-8892", "materialDescription": "Drive Shaft, Forged", "plantId": "1010", "plantName": "Frankfurt Assembly", "baseUnit": "EA", "onHandQuantity": 540, "safetyStock": 120, "reorderPoint": 180, "standardCost": 61.0 },
+        { "materialPlantId": "MP-1030-8892", "materialId": "MAT-8892", "materialDescription": "Drive Shaft, Forged", "plantId": "1030", "plantName": "Munich Assembly", "baseUnit": "EA", "onHandQuantity": 300, "safetyStock": 100, "reorderPoint": 150, "standardCost": 61.0 },
+        { "materialPlantId": "MP-1020-7400", "materialId": "MAT-7400", "materialDescription": "Hydraulic Seal Kit", "plantId": "1020", "plantName": "Leipzig Distribution", "baseUnit": "EA", "onHandQuantity": 900, "safetyStock": 200, "reorderPoint": 300, "standardCost": 8.75 }
+      ]
+    },
+
+    "MaterialRequirements": {
+      "description": "Generic demand for a material-plant. Requirement types are deliberately mixed (production order, sales order, forecast) so demand aggregation is non-trivial. Most demand is comfortably covered; assess each material-plant on its own merits.",
+      "primaryKey": "requirementId",
+      "attributes": {
+        "requirementId": { "type": "string", "description": "Unique requirement identifier." },
+        "materialPlantId": { "type": "string", "foreignKey": "MaterialPlant.materialPlantId", "description": "Material-plant the demand is against." },
+        "requirementType": { "type": "string", "enum": ["ProductionOrder", "SalesOrder", "Forecast"], "description": "Origin of the demand." },
+        "requirementQuantity": { "type": "number", "description": "Quantity demanded." },
+        "requirementDate": { "type": "string", "description": "Date the material is needed (ISO-8601)." },
+        "priority": { "type": "string", "enum": ["High", "Medium", "Low"], "description": "Business priority of the demand." },
+        "status": { "type": "string", "enum": ["Open", "PartiallyCovered", "Covered"], "description": "Coverage status." }
+      },
+      "records": [
+        { "requirementId": "MREQ-7001", "materialPlantId": "MP-1010-8891", "requirementType": "ProductionOrder", "requirementQuantity": 180, "requirementDate": "2026-09-16", "priority": "High", "status": "Open" },
+        { "requirementId": "MREQ-7002", "materialPlantId": "MP-1010-8891", "requirementType": "SalesOrder", "requirementQuantity": 140, "requirementDate": "2026-09-18", "priority": "High", "status": "Open" },
+        { "requirementId": "MREQ-7003", "materialPlantId": "MP-1010-8891", "requirementType": "Forecast", "requirementQuantity": 60, "requirementDate": "2026-09-30", "priority": "Low", "status": "Open" },
+        { "requirementId": "MREQ-7010", "materialPlantId": "MP-1020-8891", "requirementType": "Forecast", "requirementQuantity": 40, "requirementDate": "2026-09-28", "priority": "Low", "status": "Open" },
+        { "requirementId": "MREQ-7020", "materialPlantId": "MP-1010-8892", "requirementType": "ProductionOrder", "requirementQuantity": 200, "requirementDate": "2026-09-20", "priority": "High", "status": "Open" },
+        { "requirementId": "MREQ-7021", "materialPlantId": "MP-1030-8892", "requirementType": "SalesOrder", "requirementQuantity": 120, "requirementDate": "2026-09-22", "priority": "Medium", "status": "Open" },
+        { "requirementId": "MREQ-7022", "materialPlantId": "MP-1020-7400", "requirementType": "Forecast", "requirementQuantity": 250, "requirementDate": "2026-09-25", "priority": "Low", "status": "Open" },
+        { "requirementId": "MREQ-7023", "materialPlantId": "MP-1010-8892", "requirementType": "Forecast", "requirementQuantity": 90, "requirementDate": "2026-10-05", "priority": "Low", "status": "Open" }
+      ]
+    },
+
+    "PurchaseRequirement": {
+      "description": "A demand-driven request to procure a material-plant (the requisition).",
+      "primaryKey": "purchaseRequirementId",
+      "attributes": {
+        "purchaseRequirementId": { "type": "string", "description": "Unique purchase requirement identifier." },
+        "materialPlantId": { "type": "string", "foreignKey": "MaterialPlant.materialPlantId", "description": "Material-plant to be procured." },
+        "requestedQuantity": { "type": "number", "description": "Quantity requested." },
+        "neededByDate": { "type": "string", "description": "Date the procured material must be available (ISO-8601)." },
+        "createdDate": { "type": "string", "description": "Date the requisition was raised (ISO-8601)." },
+        "status": { "type": "string", "enum": ["Open", "Converted", "Closed"], "description": "Lifecycle status. Converted = a purchase document line was created from it." }
+      },
+      "records": [
+        { "purchaseRequirementId": "PR-3001", "materialPlantId": "MP-1010-8891", "requestedQuantity": 400, "neededByDate": "2026-09-15", "createdDate": "2026-08-10", "status": "Converted" },
+        { "purchaseRequirementId": "PR-3002", "materialPlantId": "MP-1020-8891", "requestedQuantity": 100, "neededByDate": "2026-10-05", "createdDate": "2026-08-22", "status": "Converted" },
+        { "purchaseRequirementId": "PR-3003", "materialPlantId": "MP-1010-8892", "requestedQuantity": 300, "neededByDate": "2026-08-25", "createdDate": "2026-08-01", "status": "Converted" },
+        { "purchaseRequirementId": "PR-3004", "materialPlantId": "MP-1020-7400", "requestedQuantity": 500, "neededByDate": "2026-09-20", "createdDate": "2026-08-18", "status": "Converted" }
+      ]
+    },
+
+    "PurchaseDocument": {
+      "description": "The purchasing document header (a purchase order). Groups one or more lines against a single vendor.",
+      "primaryKey": "purchaseDocumentId",
+      "attributes": {
+        "purchaseDocumentId": { "type": "string", "description": "Unique purchase document identifier." },
+        "documentType": { "type": "string", "enum": ["PurchaseOrder"], "description": "Document category (only PurchaseOrder is used in this dataset)." },
+        "vendorId": { "type": "string", "foreignKey": "Vendor.vendorId", "description": "Supplier the document is placed with." },
+        "documentDate": { "type": "string", "description": "Date the document was issued (ISO-8601)." },
+        "status": { "type": "string", "enum": ["Open", "PartiallyReceived", "Closed"], "description": "Header lifecycle status." },
+        "currency": { "type": "string", "description": "Document currency." }
+      },
+      "records": [
+        { "purchaseDocumentId": "PDOC-4500001234", "documentType": "PurchaseOrder", "vendorId": "V-2001", "documentDate": "2026-08-12", "status": "Open", "currency": "EUR" },
+        { "purchaseDocumentId": "PDOC-4500001240", "documentType": "PurchaseOrder", "vendorId": "V-2001", "documentDate": "2026-08-24", "status": "Open", "currency": "EUR" },
+        { "purchaseDocumentId": "PDOC-4500001250", "documentType": "PurchaseOrder", "vendorId": "V-2004", "documentDate": "2026-08-06", "status": "Closed", "currency": "EUR" },
+        { "purchaseDocumentId": "PDOC-4500001255", "documentType": "PurchaseOrder", "vendorId": "V-2005", "documentDate": "2026-08-20", "status": "Open", "currency": "EUR" }
+      ]
+    },
+
+    "PurchaseDocumentLine": {
+      "description": "A line item on a purchase document. The `confirmedDeliveryDate` is the date the vendor currently commits to; compare it against demand timing to reason about coverage.",
+      "primaryKey": "purchaseDocumentLineId",
+      "attributes": {
+        "purchaseDocumentLineId": { "type": "string", "description": "Unique line identifier." },
+        "purchaseDocumentId": { "type": "string", "foreignKey": "PurchaseDocument.purchaseDocumentId", "description": "Parent purchase document." },
+        "lineNumber": { "type": "integer", "description": "Line number within the document." },
+        "materialPlantId": { "type": "string", "foreignKey": "MaterialPlant.materialPlantId", "description": "Material-plant being purchased." },
+        "purchaseRequirementId": { "type": "string", "foreignKey": "PurchaseRequirement.purchaseRequirementId", "description": "Requisition this line was converted from." },
+        "orderedQuantity": { "type": "number", "description": "Quantity ordered on the line." },
+        "netPrice": { "type": "number", "description": "Net unit price in the document currency." },
+        "requestedDeliveryDate": { "type": "string", "description": "Delivery date originally requested (ISO-8601)." },
+        "confirmedDeliveryDate": { "type": "string", "description": "Delivery date currently confirmed by the vendor (ISO-8601)." },
+        "goodsReceiptQuantity": { "type": "number", "description": "Quantity received so far." },
+        "lineStatus": { "type": "string", "enum": ["Open", "Confirmed", "Delayed", "PartiallyReceived", "Received"], "description": "Line lifecycle status." }
+      },
+      "records": [
+        { "purchaseDocumentLineId": "PDOC-4500001234-10", "purchaseDocumentId": "PDOC-4500001234", "lineNumber": 10, "materialPlantId": "MP-1010-8891", "purchaseRequirementId": "PR-3001", "orderedQuantity": 400, "netPrice": 40.0, "requestedDeliveryDate": "2026-09-11", "confirmedDeliveryDate": "2026-09-25", "goodsReceiptQuantity": 0, "lineStatus": "Delayed" },
+        { "purchaseDocumentLineId": "PDOC-4500001240-10", "purchaseDocumentId": "PDOC-4500001240", "lineNumber": 10, "materialPlantId": "MP-1020-8891", "purchaseRequirementId": "PR-3002", "orderedQuantity": 100, "netPrice": 40.0, "requestedDeliveryDate": "2026-10-02", "confirmedDeliveryDate": "2026-10-02", "goodsReceiptQuantity": 0, "lineStatus": "Confirmed" },
+        { "purchaseDocumentLineId": "PDOC-4500001250-10", "purchaseDocumentId": "PDOC-4500001250", "lineNumber": 10, "materialPlantId": "MP-1010-8892", "purchaseRequirementId": "PR-3003", "orderedQuantity": 300, "netPrice": 58.0, "requestedDeliveryDate": "2026-08-20", "confirmedDeliveryDate": "2026-08-20", "goodsReceiptQuantity": 300, "lineStatus": "Received" },
+        { "purchaseDocumentLineId": "PDOC-4500001255-10", "purchaseDocumentId": "PDOC-4500001255", "lineNumber": 10, "materialPlantId": "MP-1020-7400", "purchaseRequirementId": "PR-3004", "orderedQuantity": 500, "netPrice": 8.5, "requestedDeliveryDate": "2026-09-19", "confirmedDeliveryDate": "2026-09-19", "goodsReceiptQuantity": 0, "lineStatus": "Confirmed" }
+      ]
+    }
+  },
+
+  "events": {
+    "description": "A flat, append-only event log across objects. Each event references the object it belongs to via objectType + objectId. Replaying the events reconstructs each object's lifecycle. Most activity is routine; one event materially changes a commitment.",
+    "schema": {
+      "eventId": { "type": "string", "description": "Unique event identifier." },
+      "objectType": { "type": "string", "description": "The object type the event belongs to." },
+      "objectId": { "type": "string", "description": "The specific object instance the event belongs to." },
+      "activity": { "type": "string", "description": "The business activity that occurred." },
+      "timestamp": { "type": "string", "description": "When the activity occurred (ISO-8601 UTC)." },
+      "attributes": { "type": "object", "description": "Optional activity-specific payload (e.g., old vs. new value)." }
+    },
+    "records": [
+      { "eventId": "EVT-0001", "objectType": "PurchaseRequirement", "objectId": "PR-3001", "activity": "Purchase Requirement Created", "timestamp": "2026-08-10T08:12:00Z", "attributes": {} },
+      { "eventId": "EVT-0002", "objectType": "PurchaseDocument", "objectId": "PDOC-4500001234", "activity": "Purchase Order Created", "timestamp": "2026-08-12T09:30:00Z", "attributes": {} },
+      { "eventId": "EVT-0003", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001234-10", "activity": "Line Created", "timestamp": "2026-08-12T09:30:05Z", "attributes": { "orderedQuantity": 400 } },
+      { "eventId": "EVT-0004", "objectType": "PurchaseDocument", "objectId": "PDOC-4500001234", "activity": "Purchase Order Approved", "timestamp": "2026-08-12T14:05:00Z", "attributes": {} },
+      { "eventId": "EVT-0005", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001234-10", "activity": "Delivery Date Confirmed", "timestamp": "2026-08-15T11:20:00Z", "attributes": { "confirmedDeliveryDate": "2026-09-11" } },
+      { "eventId": "EVT-0006", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001234-10", "activity": "Delivery Date Changed", "timestamp": "2026-09-01T07:45:00Z", "attributes": { "oldConfirmedDeliveryDate": "2026-09-11", "newConfirmedDeliveryDate": "2026-09-25", "reason": "Vendor capacity constraint" } },
+      { "eventId": "EVT-0007", "objectType": "PurchaseRequirement", "objectId": "PR-3002", "activity": "Purchase Requirement Created", "timestamp": "2026-08-22T10:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0008", "objectType": "PurchaseDocument", "objectId": "PDOC-4500001240", "activity": "Purchase Order Created", "timestamp": "2026-08-24T09:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0009", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001240-10", "activity": "Line Created", "timestamp": "2026-08-24T09:00:04Z", "attributes": { "orderedQuantity": 100 } },
+      { "eventId": "EVT-0010", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001240-10", "activity": "Delivery Date Confirmed", "timestamp": "2026-08-27T13:15:00Z", "attributes": { "confirmedDeliveryDate": "2026-10-02" } },
+      { "eventId": "EVT-0011", "objectType": "MaterialRequirements", "objectId": "MREQ-7001", "activity": "Requirement Registered", "timestamp": "2026-08-05T06:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0012", "objectType": "MaterialRequirements", "objectId": "MREQ-7002", "activity": "Requirement Registered", "timestamp": "2026-08-19T06:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0013", "objectType": "MaterialRequirements", "objectId": "MREQ-7003", "activity": "Requirement Registered", "timestamp": "2026-08-28T06:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0014", "objectType": "PurchaseRequirement", "objectId": "PR-3003", "activity": "Purchase Requirement Created", "timestamp": "2026-08-01T08:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0015", "objectType": "PurchaseDocument", "objectId": "PDOC-4500001250", "activity": "Purchase Order Created", "timestamp": "2026-08-06T09:10:00Z", "attributes": {} },
+      { "eventId": "EVT-0016", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001250-10", "activity": "Line Created", "timestamp": "2026-08-06T09:10:03Z", "attributes": { "orderedQuantity": 300 } },
+      { "eventId": "EVT-0017", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001250-10", "activity": "Delivery Date Confirmed", "timestamp": "2026-08-08T10:00:00Z", "attributes": { "confirmedDeliveryDate": "2026-08-20" } },
+      { "eventId": "EVT-0018", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001250-10", "activity": "Goods Received", "timestamp": "2026-08-20T15:40:00Z", "attributes": { "goodsReceiptQuantity": 300 } },
+      { "eventId": "EVT-0019", "objectType": "PurchaseRequirement", "objectId": "PR-3004", "activity": "Purchase Requirement Created", "timestamp": "2026-08-18T07:30:00Z", "attributes": {} },
+      { "eventId": "EVT-0020", "objectType": "PurchaseDocument", "objectId": "PDOC-4500001255", "activity": "Purchase Order Created", "timestamp": "2026-08-20T09:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0021", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001255-10", "activity": "Line Created", "timestamp": "2026-08-20T09:00:06Z", "attributes": { "orderedQuantity": 500 } },
+      { "eventId": "EVT-0022", "objectType": "PurchaseDocumentLine", "objectId": "PDOC-4500001255-10", "activity": "Delivery Date Confirmed", "timestamp": "2026-08-23T12:00:00Z", "attributes": { "confirmedDeliveryDate": "2026-09-19" } },
+      { "eventId": "EVT-0023", "objectType": "MaterialRequirements", "objectId": "MREQ-7020", "activity": "Requirement Registered", "timestamp": "2026-08-06T06:00:00Z", "attributes": {} },
+      { "eventId": "EVT-0024", "objectType": "MaterialRequirements", "objectId": "MREQ-7021", "activity": "Requirement Registered", "timestamp": "2026-08-09T06:00:00Z", "attributes": {} }
+    ]
+  },
+
+  "relationships": [
+    { "from": "PurchaseDocumentLine", "to": "PurchaseDocument", "type": "belongsTo", "cardinality": "many-to-one", "via": "purchaseDocumentId" },
+    { "from": "PurchaseDocumentLine", "to": "PurchaseRequirement", "type": "convertedFrom", "cardinality": "many-to-one", "via": "purchaseRequirementId" },
+    { "from": "PurchaseDocumentLine", "to": "MaterialPlant", "type": "supplies", "cardinality": "many-to-one", "via": "materialPlantId" },
+    { "from": "PurchaseDocument", "to": "Vendor", "type": "placedWith", "cardinality": "many-to-one", "via": "vendorId" },
+    { "from": "PurchaseRequirement", "to": "MaterialPlant", "type": "requests", "cardinality": "many-to-one", "via": "materialPlantId" },
+    { "from": "MaterialRequirements", "to": "MaterialPlant", "type": "demands", "cardinality": "many-to-one", "via": "materialPlantId" },
+    { "from": "Vendor", "to": "MaterialPlant", "type": "approvedToSupply", "cardinality": "many-to-many", "via": "approvedForMaterials" }
+  ],
+
+  "scenario": {
+    "title": "A confirmed delivery date slipped — assess the impact and decide what to do",
+    "narrative": "On 2026-09-01 the vendor changed the confirmed delivery date of an open purchase order line (PDOC-4500001234-10) that supplies material MAT-8891 to plant 1010 (see event EVT-0006). The dataset also contains several other materials, plants, vendors and purchase orders that are operating normally. Using the objects, events, and relationships above, work out whether this change puts plant 1010 at risk of not meeting its near-term demand — and if so, by how much and what the best course of action is. All the facts you need are in the data; the analysis is up to you.",
+    "note_to_candidate": "There is no single 'correct' answer, and the impact and the options are deliberately NOT pre-computed for you. A strong solution derives the risk from the records, discovers the realistic options the data supports, weighs their trade-offs (cost, lead time, reliability, priority), and produces a defensible recommendation backed by the evidence it used."
+  }
+}

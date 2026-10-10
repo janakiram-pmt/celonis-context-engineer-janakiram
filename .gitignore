@@ -1,0 +1,31 @@
+# Secrets — never commit real credentials
+.env
+.env.local
+*.key
+*.pem
+secrets.*
+
+# Node
+node_modules/
+dist/
+build/
+.next/
+npm-debug.log*
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.ipynb_checkpoints/
+
+# Internal hiring-team material — must never be committed to the candidate repo
+*INTERNAL*
+ai_scoring_rubric.md
+_INTERNAL-hiring-team/
+
+# OS / editor
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/

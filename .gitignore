@@ -29,3 +29,6 @@ _INTERNAL-hiring-team/
 Thumbs.db
 .idea/
 .vscode/
+
+# Local SQLite build (regenerate with data-model/load_sqlite.py)
+data-model/*.db

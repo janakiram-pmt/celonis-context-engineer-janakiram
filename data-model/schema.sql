@@ -3,6 +3,8 @@
 -- so the semantic layer maps 1:1. Only source facts are stored here; derived
 -- values (projected stock, shortfall, spare stock) are computed in code.
 
+-- SQLite enforces foreign keys per connection, not per database file.
+-- Always open the database via load_sqlite.connect(), which turns them on.
 PRAGMA foreign_keys = ON;
 
 CREATE TABLE Vendor (

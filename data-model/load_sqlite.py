@@ -26,16 +26,30 @@ OBJECT_TABLES = {
 }
 
 
+def connect(db_path=DEFAULT_DB):
+    """Open the database with foreign keys enforced.
+
+    SQLite turns foreign keys off for every new connection, so all code must
+    open the database through this function.
+    """
+    conn = sqlite3.connect(db_path)
+    conn.execute("PRAGMA foreign_keys = ON")
+    return conn
+
+
 def insert(conn, table, row):
     cols = ", ".join(row)
     marks = ", ".join("?" for _ in row)
     conn.execute(f"INSERT INTO {table} ({cols}) VALUES ({marks})", list(row.values()))
 
 
-def load(db_path):
-    data = json.loads(SOURCE.read_text())
+def load(db_path, data=None):
+    """Build db_path from the source JSON (or from `data`, for tests)."""
+    if data is None:
+        data = json.loads(SOURCE.read_text())
+    db_path = Path(db_path)
     db_path.unlink(missing_ok=True)
-    conn = sqlite3.connect(db_path)
+    conn = connect(db_path)
     conn.executescript(SCHEMA.read_text())
 
     objects = data["objects"]

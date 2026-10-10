@@ -36,9 +36,9 @@ erDiagram
     }
     MaterialPlant {
         string materialPlantId PK
-        string materialId UK
+        string materialId
         string materialDescription
-        string plantId UK
+        string plantId
         string plantName
         string baseUnit
         real onHandQuantity
@@ -94,6 +94,8 @@ erDiagram
     }
 ```
 
+In `MaterialPlant`, the pair (`materialId`, `plantId`) is unique; neither column is unique on its own.
+
 `Event` has no drawn relationship. Its `objectType` + `objectId` pair points to a different table per row, which a database foreign key can't express. The loader checks every reference instead.
 
 ## Source relationships → tables
@@ -122,9 +124,26 @@ erDiagram
 | **Source names kept** | The semantic layer and the source JSON map to the tables one-to-one. |
 | **CHECK constraints** | Allowed values for statuses and priorities, non-negative quantities, on-time rate 0–1, unique line number per PO. |
 
+## Where we draw the line: database checks vs. business logic
+
+The test: **could a correct source system ever legitimately contain this, even rarely?**
+
+- **Never → database check.** The row is broken data and is rejected on load.
+- **Possible → stored as-is.** The raw layer records what the source says. Customer policy is applied by the decision functions when they recommend an action.
+
+| Layer | What it guards | Rules |
+|---|---|---|
+| **Database checks** (`schema.sql`) | Structure and identity | Unique primary keys; foreign keys exist; event references exist (checked by the loader); source vocabularies (statuses, priorities, requirement types, quality A–C); quantities and prices ≥ 0; on-time rate 0–1; one line number per PO; valid JSON in event attributes |
+| **Decision functions** (`../app/`) | Customer policy from the discovery interview | Only approved, reliable vendors (on-time above 90%, quality A); never transfer below the sending plant's safety stock; no spend to expedite forecast demand; preference order transfer → alternate vendor → split → incumbent |
+
+Unusual but legitimate cases are **stored, not rejected**: a PO with a vendor whose approval was later revoked, a PO line whose plant was changed after the requisition, over- or under-delivery, a status that disagrees with the quantities, safety stock above the reorder point.
+
+Coverage is computed from **quantities, not statuses** (open quantity = ordered − received), so a stale status can't produce a wrong number. Monitoring these unusual cases for data quality is a production concern and isn't built here.
+
 ## Evolution path (not built)
 
-Both are additive, so nothing built on the current tables breaks.
+All are additive, so nothing built on the current tables breaks.
 
 1. **Split `Material` and `Plant` out of `MaterialPlant`.** Removes repeated names and gives plant-level facts (location, transfer lead times between plants) a home. `MaterialPlant`'s primary key stays the same; `materialId` and `plantId` become foreign keys.
 2. **`EventObject` link table.** If a source system records one event against several objects (e.g., one goods receipt closing several PO lines), move the event-to-object reference into its own table, as in the OCEL 2.0 object-centric event log standard.
+3. **Indexes for the app's access paths.** Irrelevant at this size; at scale: `MaterialRequirements(materialPlantId, requirementDate)`, `PurchaseDocumentLine(materialPlantId, confirmedDeliveryDate)`, `PurchaseDocumentLine(purchaseRequirementId)`, `VendorApproval(materialPlantId)`, `Event(objectType, objectId, timestamp)`.

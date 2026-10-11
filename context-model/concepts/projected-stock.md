@@ -19,6 +19,9 @@ A running balance over time for one material-plant. Start with stock on hand tod
 ## Formula
 `balance(today) = onHandQuantity`, then in date order: `balance += open quantity` for each arrival, `balance −= requirementQuantity` for each requirement (all demand types). Each step cites the record that caused it.
 
+- **Points only where something changes:** today (`metadata.asOfDate`), every requirement date, and every arrival date. Between points the balance is flat; the balance on any date is the last point on or before it.
+- **Runs to the last record:** through the latest requirement or arrival for the material-plant, not just to the next arrival. Consumers (e.g., [alerting](../rules/alerting.md)) apply their own horizon.
+
 ## How to read it
 - Below 0 → demand can't be met: a [shortfall](shortfall.md).
 - Below `safetyStock` → the buffer is eroded: a [safety-stock breach](safety-stock-breach.md).

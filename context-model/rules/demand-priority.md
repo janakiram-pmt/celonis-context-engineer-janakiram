@@ -21,6 +21,7 @@ Protect committed, high-priority demand first, always. Forecast demand can be re
 ## How to apply
 - When stock or supply is scarce, allocate it in order: committed before forecast, then High → Low priority, then earliest date first.
 - The nearest high-priority requirement is the one to cover first (see [split policy](split-policy.md)).
+- Priority ranks demand; it doesn't make demand committed. Commitment comes from the requirement type (see the assumption in [committed demand](../concepts/committed-demand.md)).
 
 ## What not to do
 - Never let a production order go short to cover a forecast.

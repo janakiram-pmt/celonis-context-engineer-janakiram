@@ -82,4 +82,4 @@ Our own assumptions (things neither the data nor the customer states) sit in the
 | "spare above its buffer" | Spare stock | [spare-stock](concepts/spare-stock.md) |
 | "top-up" | Cover the rest of a gap from an alternate approved vendor | [resolution-order](rules/resolution-order.md) |
 | "expedite" | Get supply sooner: from an alternate vendor (preferred) or the incumbent (last resort) | [resolution-order](rules/resolution-order.md) |
-| "firm sales order" | A sales order (all treated as firm) | [committed-demand](concepts/committed-demand.md) |
+| "firm sales order" | Any sales order (committed) | [committed-demand](concepts/committed-demand.md) |

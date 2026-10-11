@@ -6,6 +6,8 @@ inputs: [MaterialRequirements.requirementType, MaterialRequirements.priority, Ma
 computed_by: assess_coverage
 output: each requirement tagged committed / not committed, ranked by priority then date
 related: [material-requirement, shortfall, demand-priority, spending-policy]
+params:
+  committed_types: [ProductionOrder, SalesOrder]
 assumptions:
   - name: type decides commitment
     value: requirementType decides committed (ProductionOrder, SalesOrder); priority only ranks within committed demand
@@ -19,7 +21,7 @@ Demand the business has promised and must protect: **production orders and sales
 > "I care a lot if a production order or a firm sales order is going to go uncovered." (Maria)
 
 ## Formula
-`committed = requirementType IN ('ProductionOrder', 'SalesOrder')`. Within committed demand, rank by `priority` (High → Low), then `requirementDate`.
+`committed = requirementType IN params.committed_types` (ProductionOrder, SalesOrder). Within committed demand, rank by `priority` (High → Low), then `requirementDate`.
 
 ## How to read it
 - A shortfall against committed demand is **Critical** (see [alerting](../rules/alerting.md)).

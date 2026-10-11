@@ -11,6 +11,10 @@ inputs:
 computed_by: project_stock
 output: per PO line, quantity still to arrive and its arrival date
 related: [purchase-document-line, projected-stock]
+assumptions:
+  - name: overdue supply
+    value: an open line whose confirmed date is before the analysis date is not counted until it is received
+    why: Nothing has arrived despite the promise, so assuming it lands today would hide a late-delivery risk.
 ---
 # Open supply
 
@@ -27,3 +31,7 @@ What is still coming in: for each PO line, the quantity not yet delivered, arriv
 - Use `confirmedDeliveryDate`, never `requestedDeliveryDate`.
 - Use quantities, not `lineStatus`. A stale status must not change the number.
 - A partially received line contributes only its remainder.
+- **Overdue** lines (confirmed date already passed, not fully received) are listed separately and not counted. They are a vendor issue in the why.
+
+## Assumptions (ours, not the customer's)
+- Overdue supply isn't counted until it's received.

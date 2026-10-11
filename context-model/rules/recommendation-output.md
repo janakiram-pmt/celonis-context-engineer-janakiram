@@ -6,7 +6,7 @@ params:
   primary_recommendations: 1
   fallback_required: true
   numbers_from_tools_only: true
-  required_evidence: [shortfall_quantity, shortfall_date, causal_event, affected_demand, options_considered, assumptions_used]
+  required_evidence: [recommended_plan, result_after_plan, shortfall_quantity, shortfall_date, causal_event, affected_demand, options_considered, fallback, assumptions_used]
 source: discovery_interview.md (Maria, Tom)
 applies_to: [shortfall, date-slip, committed-demand]
 used_by: [submit_briefing]
@@ -25,6 +25,8 @@ Give **one** clear recommendation for what is actually broken, plus a fallback. 
 
 ## How to apply
 Each recommendation includes:
+- **Recommended plan:** the actions, in order. Each states what (transfer, alternate-vendor order, split, expedite), how much, from which plant or vendor, and the arrival date.
+- **Result after the plan:** whether the committed shortfall is closed, projected stock with the plan applied, and the [re-check after the plan](alerting.md) (sending plants stay at or above safety stock; the plan's vendors pass [vendor eligibility](vendor-eligibility.md)).
 - **Shortfall:** quantity and date (from [shortfall](../concepts/shortfall.md)).
 - **Cause:** the event: which line, old → new date, reason, event id (from [date slip](../concepts/date-slip.md)).
 - **Affected demand:** which requirements, their type and priority.

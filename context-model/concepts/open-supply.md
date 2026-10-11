@@ -8,7 +8,7 @@ inputs:
   - PurchaseDocumentLine.orderedQuantity
   - PurchaseDocumentLine.goodsReceiptQuantity
   - PurchaseDocumentLine.confirmedDeliveryDate
-computed_by: project_stock
+computed_by: check_stock_risk
 output: per PO line, quantity still to arrive and its arrival date
 related: [purchase-document-line, projected-stock]
 assumptions:

@@ -8,7 +8,7 @@ params:
   priority_order: [High, Medium, Low]
 source: discovery_interview.md (Maria)
 applies_to: [committed-demand, material-requirement]
-used_by: [rank_resolution_options]
+used_by: [check_stock_risk, rank_resolution_options]
 ---
 # Demand priority
 

@@ -15,7 +15,7 @@ inputs:
   - PurchaseDocumentLine.orderedQuantity
   - PurchaseDocumentLine.goodsReceiptQuantity
   - PurchaseDocumentLine.confirmedDeliveryDate
-computed_by: assess_coverage
+computed_by: check_stock_risk
 output: per uncovered requirement, quantity short and date; total and first date per material-plant
 related: [projected-stock, committed-demand, safety-stock-breach, alerting]
 ---

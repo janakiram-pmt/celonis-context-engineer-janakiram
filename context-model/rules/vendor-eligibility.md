@@ -16,7 +16,7 @@ assumptions:
     why: Typical requisition-to-PO time in the event log (2 days for 3 of 4 requisitions; 5 days once). The vendor's lead time counts from the PO.
 source: discovery_interview.md (Maria, Tom)
 applies_to: [vendor, vendor-approval, vendor-reliability]
-used_by: [find_alternate_vendors, assess_critical_path, rank_resolution_options]
+used_by: [find_alternate_vendors, find_critical_suppliers, rank_resolution_options]
 ---
 # Vendor eligibility
 

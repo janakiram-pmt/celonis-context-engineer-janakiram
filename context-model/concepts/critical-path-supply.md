@@ -23,7 +23,7 @@ inputs:
   - Vendor.qualityRating
   - VendorApproval.vendorId
   - VendorApproval.materialPlantId
-computed_by: assess_critical_path
+computed_by: find_critical_suppliers
 output: per committed requirement, the open-supply lines it depends on and their vendors' reliability
 related: [open-supply, committed-demand, vendor-reliability, date-slip, alerting]
 ---

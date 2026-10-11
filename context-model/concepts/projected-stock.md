@@ -14,7 +14,7 @@ inputs:
   - PurchaseDocumentLine.orderedQuantity
   - PurchaseDocumentLine.goodsReceiptQuantity
   - PurchaseDocumentLine.confirmedDeliveryDate
-computed_by: project_stock
+computed_by: check_stock_risk
 output: timeline of (date, change, balance, source record) per material-plant
 related: [open-supply, committed-demand, shortfall, safety-stock-breach, spare-stock]
 assumptions:

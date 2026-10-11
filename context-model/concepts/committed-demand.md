@@ -3,7 +3,7 @@ id: committed-demand
 type: concept
 aliases: [committed demand, firm demand, firm order, high-priority demand]
 inputs: [MaterialRequirements.requirementType, MaterialRequirements.priority, MaterialRequirements.requirementQuantity, MaterialRequirements.requirementDate]
-computed_by: assess_coverage
+computed_by: check_stock_risk
 output: each requirement tagged committed / not committed, ranked by priority then date
 related: [material-requirement, shortfall, demand-priority, spending-policy]
 params:

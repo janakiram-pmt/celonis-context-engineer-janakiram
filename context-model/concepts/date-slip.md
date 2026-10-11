@@ -12,7 +12,7 @@ inputs:
   - PurchaseDocumentLine.purchaseDocumentLineId
   - PurchaseDocumentLine.confirmedDeliveryDate
   - PurchaseDocumentLine.requestedDeliveryDate
-computed_by: find_date_slips
+computed_by: find_changes
 output: per slipped PO line, old date, new date, days slipped, reason, event id, when it was recorded
 related: [event, purchase-document-line, critical-path-supply]
 ---

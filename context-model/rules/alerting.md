@@ -16,7 +16,7 @@ assumptions:
     why: Typical requisition-to-PO time in the event log (2 days for 3 of 4 requisitions; 5 days once). The vendor's lead time counts from the PO.
 source: discovery_interview.md (Maria, Tom)
 applies_to: [shortfall, safety-stock-breach, committed-demand, critical-path-supply]
-used_by: [assess_coverage, assess_critical_path]
+used_by: [check_stock_risk, find_critical_suppliers, rank_resolution_options]
 ---
 # Alerting: what to flag, what to leave alone
 

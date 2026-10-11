@@ -15,7 +15,7 @@ inputs:
   - PurchaseDocumentLine.orderedQuantity
   - PurchaseDocumentLine.goodsReceiptQuantity
   - PurchaseDocumentLine.confirmedDeliveryDate
-computed_by: assess_coverage
+computed_by: check_stock_risk
 output: first date below safety stock, lowest balance, and whether (and when) open supply restores it
 related: [projected-stock, open-supply, shortfall, alerting]
 ---

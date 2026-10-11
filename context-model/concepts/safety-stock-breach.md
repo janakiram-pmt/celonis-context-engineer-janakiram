@@ -2,12 +2,26 @@
 id: safety-stock-breach
 type: concept
 aliases: [safety stock breach, below safety stock, below buffer, buffer eroded]
-inputs: [MaterialPlant.safetyStock, MaterialPlant.onHandQuantity]
+inputs:
+  - MaterialPlant.materialPlantId
+  - MaterialPlant.onHandQuantity
+  - MaterialPlant.safetyStock
+  - MaterialRequirements.requirementId
+  - MaterialRequirements.materialPlantId
+  - MaterialRequirements.requirementQuantity
+  - MaterialRequirements.requirementDate
+  - PurchaseDocumentLine.purchaseDocumentLineId
+  - PurchaseDocumentLine.materialPlantId
+  - PurchaseDocumentLine.orderedQuantity
+  - PurchaseDocumentLine.goodsReceiptQuantity
+  - PurchaseDocumentLine.confirmedDeliveryDate
 computed_by: assess_coverage
 output: first date below safety stock, lowest balance, and whether (and when) open supply restores it
 related: [projected-stock, open-supply, shortfall, alerting]
 ---
 # Safety-stock breach
+
+> "Today" means the [analysis date](../index.md#conventions): `metadata.asOfDate`, never the system clock.
 
 ## Definition
 [Projected stock](projected-stock.md) falls below the material-plant's `safetyStock`, the buffer the business isn't supposed to dip below.

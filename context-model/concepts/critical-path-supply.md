@@ -2,12 +2,34 @@
 id: critical-path-supply
 type: concept
 aliases: [critical path, single point of failure, the only thing standing between me and a stockout]
-inputs: [PurchaseDocumentLine.purchaseDocumentLineId, PurchaseDocumentLine.confirmedDeliveryDate, MaterialRequirements.requirementType, Vendor.onTimeDeliveryRate]
+inputs:
+  - MaterialPlant.materialPlantId
+  - MaterialPlant.onHandQuantity
+  - MaterialRequirements.requirementId
+  - MaterialRequirements.materialPlantId
+  - MaterialRequirements.requirementQuantity
+  - MaterialRequirements.requirementDate
+  - MaterialRequirements.requirementType
+  - PurchaseDocumentLine.purchaseDocumentLineId
+  - PurchaseDocumentLine.materialPlantId
+  - PurchaseDocumentLine.orderedQuantity
+  - PurchaseDocumentLine.goodsReceiptQuantity
+  - PurchaseDocumentLine.confirmedDeliveryDate
+  - PurchaseDocumentLine.purchaseDocumentId
+  - PurchaseDocument.purchaseDocumentId
+  - PurchaseDocument.vendorId
+  - Vendor.vendorId
+  - Vendor.onTimeDeliveryRate
+  - Vendor.qualityRating
+  - VendorApproval.vendorId
+  - VendorApproval.materialPlantId
 computed_by: assess_critical_path
 output: per committed requirement, the open-supply lines it depends on and their vendors' reliability
 related: [open-supply, committed-demand, vendor-reliability, date-slip, alerting]
 ---
 # Critical-path supply
+
+> "Today" means the [analysis date](../index.md#conventions): `metadata.asOfDate`, never the system clock.
 
 ## Definition
 An open-supply line that committed demand **depends on**: without it, that demand would go short. Maria: "if the only thing standing between me and a stockout is a vendor who misses half their dates, I want to know."

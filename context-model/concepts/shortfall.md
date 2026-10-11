@@ -2,7 +2,19 @@
 id: shortfall
 type: concept
 aliases: [shortfall, short, gap, uncovered demand, stockout, at risk, line going down]
-inputs: [MaterialRequirements.requirementId, MaterialRequirements.requirementType, MaterialRequirements.requirementDate, MaterialPlant.onHandQuantity]
+inputs:
+  - MaterialPlant.materialPlantId
+  - MaterialPlant.onHandQuantity
+  - MaterialRequirements.requirementId
+  - MaterialRequirements.materialPlantId
+  - MaterialRequirements.requirementQuantity
+  - MaterialRequirements.requirementDate
+  - MaterialRequirements.requirementType
+  - PurchaseDocumentLine.purchaseDocumentLineId
+  - PurchaseDocumentLine.materialPlantId
+  - PurchaseDocumentLine.orderedQuantity
+  - PurchaseDocumentLine.goodsReceiptQuantity
+  - PurchaseDocumentLine.confirmedDeliveryDate
 computed_by: assess_coverage
 output: per uncovered requirement, quantity short and date; total and first date per material-plant
 related: [projected-stock, committed-demand, safety-stock-breach, alerting]

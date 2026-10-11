@@ -2,7 +2,13 @@
 id: vendor-reliability
 type: concept
 aliases: [vendor reliability, supplier reliability, on-time rate, OTD, dependable, quality tier]
-inputs: [Vendor.onTimeDeliveryRate, Vendor.qualityRating, Vendor.avgLeadTimeDays]
+inputs:
+  - Vendor.vendorId
+  - Vendor.onTimeDeliveryRate
+  - Vendor.qualityRating
+  - Vendor.avgLeadTimeDays
+  - VendorApproval.vendorId
+  - VendorApproval.materialPlantId
 computed_by: find_alternate_vendors
 output: per vendor, on-time rate, quality tier, lead time, and pass/fail against vendor eligibility
 related: [vendor, vendor-eligibility, critical-path-supply]

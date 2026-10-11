@@ -15,6 +15,8 @@ used_by: [find_transfer_options, rank_resolution_options]
 ---
 # Transfer limit
 
+> "Today" means the [analysis date](../index.md#conventions): `metadata.asOfDate`, never the system clock.
+
 ## Rule
 A transfer may take only what the sending plant can [spare](../concepts/spare-stock.md). The sender must never be projected below its own safety stock.
 

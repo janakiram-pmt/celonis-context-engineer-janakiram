@@ -8,6 +8,12 @@ type: index
 
 The raw relational truth lives in [`../data-model/`](../data-model/erd.md). This layer sits on top of it.
 
+## Conventions
+
+- **Analysis date ("today"):** `metadata.asOfDate` in `data/mock_data_schema.json`, currently **2026-09-04**. Every "today" in these files means this date. Never use the system clock: the scenario is a snapshot, and reasoning from the real date would make every future requirement look past.
+- **Units:** all quantities are in each material-plant's `baseUnit` (EA). Money is in `metadata.currency` (EUR).
+- **Dates:** ISO-8601. Delivery and requirement dates have no time of day.
+
 ## How it's organized
 
 | Folder | Holds | Test |

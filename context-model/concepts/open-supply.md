@@ -2,7 +2,12 @@
 id: open-supply
 type: concept
 aliases: [open supply, inbound, incoming, replenishment, expected receipt, in flight]
-inputs: [PurchaseDocumentLine.orderedQuantity, PurchaseDocumentLine.goodsReceiptQuantity, PurchaseDocumentLine.confirmedDeliveryDate, PurchaseDocumentLine.materialPlantId]
+inputs:
+  - PurchaseDocumentLine.purchaseDocumentLineId
+  - PurchaseDocumentLine.materialPlantId
+  - PurchaseDocumentLine.orderedQuantity
+  - PurchaseDocumentLine.goodsReceiptQuantity
+  - PurchaseDocumentLine.confirmedDeliveryDate
 computed_by: project_stock
 output: per PO line, quantity still to arrive and its arrival date
 related: [purchase-document-line, projected-stock]

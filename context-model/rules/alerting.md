@@ -9,13 +9,18 @@ params:
   recheck_after_plan: true
 assumptions:
   - name: near-term horizon
-    value: today + avgLeadTimeDays of the vendor on the material-plant's open supply; if none, the shortest lead time among eligible approved vendors; if none is eligible, the longest lead time among approved vendors
+    value: today + order processing time + avgLeadTimeDays of the vendor on the material-plant's open supply; if none, the shortest lead time among eligible approved vendors; if none is eligible, the longest lead time among approved vendors
     why: Our reading of "near-term". Demand further out can still be met by a normal order placed today from the fastest dependable vendor, so it needs no intervention yet. With no dependable vendor, a wider window is the honest choice.
+  - name: order processing time
+    value: 2 days from deciding to buy until the PO is with the vendor
+    why: Typical requisition-to-PO time in the event log (2 days for 3 of 4 requisitions; 5 days once). The vendor's lead time counts from the PO.
 source: discovery_interview.md (Maria, Tom)
 applies_to: [shortfall, safety-stock-breach, committed-demand, critical-path-supply]
 used_by: [assess_coverage, assess_critical_path]
 ---
 # Alerting: what to flag, what to leave alone
+
+> "Today" means the [analysis date](../index.md#conventions): `metadata.asOfDate`, never the system clock.
 
 ## Rule
 Flag only what is genuinely at risk, ranked by tier. Stay quiet on healthy material-plants.
@@ -44,5 +49,6 @@ Flag only what is genuinely at risk, ranked by tier. Stay quiet on healthy mater
 - Don't list healthy material-plants individually; one summary line ("N checked, all healthy") is enough.
 
 ## Assumptions (ours, not the customer's)
-- Near-term = today + the lead time of the vendor on the open supply.
+- Near-term = today + order processing time (2 days) + the lead time of the vendor on the open supply.
 - No open supply: use the fastest vendor that passes [vendor eligibility](vendor-eligibility.md), since a normal order from it today would arrive by then. If no approved vendor is eligible, use the slowest approved vendor (no dependable fast option, so cast a wider net).
+- Order processing time: 2 days, the typical requisition-to-PO time in the event log.

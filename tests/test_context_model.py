@@ -120,6 +120,15 @@ class ContextModelTest(unittest.TestCase):
                 param_names = set(meta.get("params", {}))
                 self.assertFalse(param_names & {a["name"] for a in assumptions})
 
+    def test_shared_assumptions_agree(self):
+        seen = {}
+        for path, (meta, _) in FILES.items():
+            for item in meta.get("assumptions", []):
+                with self.subTest(file=path.name, assumption=item["name"]):
+                    if item["name"] in seen:
+                        self.assertEqual(item["value"], seen[item["name"]])
+                    seen[item["name"]] = item["value"]
+
     def test_index_lists_every_file(self):
         _, body = FILES[CONTEXT / "index.md"]
         linked = {(CONTEXT / target).resolve() for target in MD_LINK.findall(body)}

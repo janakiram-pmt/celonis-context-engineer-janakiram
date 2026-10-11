@@ -2,7 +2,18 @@
 id: projected-stock
 type: concept
 aliases: [projected stock, projected available stock, stock projection, coverage, running balance]
-inputs: [MaterialPlant.onHandQuantity, MaterialPlant.safetyStock, MaterialRequirements.requirementQuantity, MaterialRequirements.requirementDate, PurchaseDocumentLine.confirmedDeliveryDate]
+inputs:
+  - MaterialPlant.materialPlantId
+  - MaterialPlant.onHandQuantity
+  - MaterialRequirements.requirementId
+  - MaterialRequirements.materialPlantId
+  - MaterialRequirements.requirementQuantity
+  - MaterialRequirements.requirementDate
+  - PurchaseDocumentLine.purchaseDocumentLineId
+  - PurchaseDocumentLine.materialPlantId
+  - PurchaseDocumentLine.orderedQuantity
+  - PurchaseDocumentLine.goodsReceiptQuantity
+  - PurchaseDocumentLine.confirmedDeliveryDate
 computed_by: project_stock
 output: timeline of (date, change, balance, source record) per material-plant
 related: [open-supply, committed-demand, shortfall, safety-stock-breach, spare-stock]
@@ -10,8 +21,13 @@ assumptions:
   - name: same-day ordering
     value: demand is subtracted before supply is added on the same date
     why: Conservative. A delivery arriving late in the day can't cover a requirement due that morning.
+  - name: backlog
+    value: the balance may go negative; a missed requirement is still owed, and later supply fills it first
+    why: Committed orders that miss their date are delivered late, not cancelled.
 ---
 # Projected stock
+
+> "Today" means the [analysis date](../index.md#conventions): `metadata.asOfDate`, never the system clock.
 
 ## Definition
 A running balance over time for one material-plant. Start with stock on hand today, add [open supply](open-supply.md) on its arrival dates, and subtract demand on its requirement dates.
@@ -29,6 +45,8 @@ A running balance over time for one material-plant. Start with stock on hand tod
 ## Edge cases
 - Includes forecast demand. Separating committed from non-committed happens in [shortfall](shortfall.md).
 - Dates before today are not projected; on-hand already reflects them.
+- Because shortfalls carry forward as backlog, the balance after a late delivery is what's left once the backlog is filled. Treating missed demand as lost would overstate later stock.
 
 ## Assumptions (ours, not the customer's)
 - On the same date, demand comes before supply.
+- Shortfalls carry forward as backlog: the balance can go negative, and later supply fills it first.

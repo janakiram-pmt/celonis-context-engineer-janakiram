@@ -38,6 +38,10 @@ SCHEMA = {
         "fallback": {"type": "string", "description": "What to do if the primary plan can't fully close the gap."},
         "watch": {"type": "array", "items": {"type": "string"}, "description": "Caveats worth watching."},
         "assumptions_used": {"type": "array", "items": {"type": "string"}},
+        "other_findings": {"type": "array", "items": {"type": "string"},
+                           "description": "Every other Critical/Warning material-plant, in findingOrder: id, tier, "
+                                          "shortfall, date. Planned one at a time after this one is resolved."},
+        "next_steps": {"type": "string", "description": "What to do first, and how to get the next alert planned."},
         "healthy_summary": {"type": "string", "description": "One line on the material-plants that are fine."},
         "citations": {"type": "array", "items": {"type": "string"},
                       "description": "Record ids and context files the briefing relies on."},
@@ -52,6 +56,8 @@ DATE = re.compile(r"\b\d{4}-\d{2}-\d{2}\b")
 RECORD_ID = re.compile(r"\b(?:MREQ|PDOC|EVT|MP|PR|V)-[0-9][0-9-]*[0-9]\b")
 NUMBER = re.compile(r"(?<![\w.-])\d+(?:\.\d+)?")
 FREE_NUMBERS = set(range(0, 11))  # small counts ("2 options", "step 1") are not claims
+CHAT_HINT = ("Questions? Run `python -m app chat` (e.g. 'any other alerts today?', "
+             "'why not ask Rheinmetall to expedite?', 'plan the next alert').")
 
 
 def _tokens(text):
@@ -74,24 +80,77 @@ def _allowed(evidence_texts):
     return dates, ids, numbers
 
 
-def validate(briefing, evidence_texts, plan=None):
+def _ungrounded(text, evidence_texts):
+    """Dates, ids, and numbers in `text` that appear in no tool output."""
+    dates, ids, numbers = _allowed(evidence_texts)
+    b_dates, b_ids, b_numbers = _tokens(text)
+    return ([f"date {d} does not appear in any tool output" for d in sorted(b_dates - dates)]
+            + [f"record id {i} does not appear in any tool output" for i in sorted(b_ids - ids)]
+            + [f"number {n:g} does not appear in any tool output" for n in sorted(b_numbers - numbers - FREE_NUMBERS)])
+
+
+def validate_answer(text, citations, evidence_texts):
+    """Ask mode: an answer is accepted only if its numbers, dates, and ids come from tool outputs."""
+    if not text:
+        return ["missing answer text"]
+    return _ungrounded(json.dumps({"text": text, "citations": citations}), evidence_texts)
+
+
+def _claims(briefing, finding):
+    """Key facts of the main finding must match the tool exactly, not just appear somewhere."""
+    problems = []
+    short = finding["committedShortfall"]
+    if short["total"]:
+        if float(briefing.get("shortfall_quantity") or 0) != float(short["total"]):
+            problems.append(f"shortfall_quantity must be {short['total']:g} (check_stock_risk)")
+        if briefing.get("shortfall_by_date") != short["requirements"][-1]["date"]:
+            problems.append(f"shortfall_by_date must be {short['requirements'][-1]['date']} (check_stock_risk)")
+    lines = briefing.get("affected_demand") or []
+    for r in short["requirements"]:
+        ok = any(r["requirementId"] in line and r["date"] in line and float(r["uncovered"]) in _tokens(line)[2]
+                 for line in lines)
+        if not ok:
+            problems.append(f"affected_demand must pair {r['requirementId']} with {r['uncovered']:g} short on {r['date']}")
+    cause = briefing.get("cause") or ""
+    for c in finding.get("why", {}).get("vendorChanges", []):
+        ref = c.get("eventId") or c["objectId"]
+        for fact in (ref, c.get("before"), c.get("after")):
+            if fact and fact not in cause:
+                problems.append(f"cause must mention {fact} ({ref})")
+    return problems
+
+
+def validate(briefing, evidence_texts, plan=None, risk=None):
     """Return a list of problems; empty means accepted.
 
     evidence_texts: JSON of every tool output plus any context files read.
-    plan: the last rank_resolution_options result, if the agent called it.
+    plan: the rank_resolution_options result for the briefing's material-plant.
+    risk: check_stock_risk over all material-plants (to check nothing is dropped and key facts match).
     """
     problems = [f"missing field: {f}" for f in SCHEMA["required"] if not briefing.get(f)]
-    if briefing.get("status") == "alert":
-        problems += [f"alert is missing field: {f}" for f in ALERT_FIELDS if not briefing.get(f)]
+    if briefing.get("status") == "alert":  # 0 and [] are valid values (e.g. a warning with no committed shortfall)
+        problems += [f"alert is missing field: {f}" for f in ALERT_FIELDS if briefing.get(f) in (None, "")]
 
-    dates, ids, numbers = _allowed(evidence_texts)
-    b_dates, b_ids, b_numbers = _tokens(json.dumps(briefing))
-    problems += [f"date {d} does not appear in any tool output" for d in sorted(b_dates - dates)]
-    problems += [f"record id {i} does not appear in any tool output" for i in sorted(b_ids - ids)]
-    problems += [f"number {n:g} does not appear in any tool output"
-                 for n in sorted(b_numbers - numbers - FREE_NUMBERS)]
+    problems += _ungrounded(json.dumps(briefing), evidence_texts)
 
-    if briefing.get("status") == "alert":
+    if risk is not None:
+        order = risk.get("findingOrder", [])
+        main = briefing.get("material_plant_id")
+        if order and briefing.get("status") != "alert":
+            problems.append(f"status must be alert: {', '.join(order)} flagged by check_stock_risk")
+        if order and main and main != order[0]:
+            problems.append(f"the main finding must be {order[0]} (first in findingOrder)")
+        others = " ".join(briefing.get("other_findings") or [])
+        problems += [f"other_findings must list {mp_id}" for mp_id in order[1:] if mp_id not in others]
+        finding = next((m for m in risk["materialPlants"] if m["materialPlantId"] == main), None)
+        if finding and briefing.get("status") == "alert":
+            problems += _claims(briefing, finding)
+
+    no_committed_gap = bool(plan) and plan.get("status") == "no_committed_shortfall"
+    if briefing.get("status") == "alert" and no_committed_gap:
+        if briefing.get("recommended_plan"):  # rules/spending-policy.md: no premium spend without committed demand
+            problems.append("no committed shortfall: recommended_plan must be empty (no premium spend)")
+    elif briefing.get("status") == "alert":
         if not plan or not plan.get("primary"):
             problems.append("an alert needs rank_resolution_options to have produced a primary plan")
         else:
@@ -106,9 +165,13 @@ def validate(briefing, evidence_texts, plan=None):
 
 def render_markdown(b):
     if b["status"] == "all_clear":
-        return f"# Supply risk briefing: all clear\n\n{b['headline']}\n\n{b['healthy_summary']}\n"
-    lines = [f"# Supply risk briefing: {b['material_plant_id']}", "", f"**{b['headline']}**", "",
-             "## Recommended plan"]
+        return f"# Supply risk briefing: all clear\n\n{b['headline']}\n\n{b['healthy_summary']}\n\n{CHAT_HINT}\n"
+    lines = [f"# Supply risk briefing: {b['material_plant_id']}", "", f"**{b['headline']}**", ""]
+    if b.get("other_findings"):
+        lines += [f"**You have {len(b['other_findings'])} more alert(s). Resolve this one first, then run "
+                  "`python -m app chat` and ask for the next alert:**"]
+        lines += [f"- {o}" for o in b["other_findings"]] + [""]
+    lines += ["## Recommended plan"]
     for a in b["recommended_plan"]:
         lines.append(f"- **{a['type'].replace('_', ' ')}**: {a['quantity']:g} from {a['source']}, arrives {a['arrival']}")
     lines += ["", f"**Result:** {b['result_after_plan']}", "", f"**Fallback:** {b['fallback']}", "",
@@ -119,7 +182,7 @@ def render_markdown(b):
     if b.get("watch"):
         lines += ["", "## Watch"] + [f"- {w}" for w in b["watch"]]
     lines += ["", "## Assumptions"] + [f"- {a}" for a in b["assumptions_used"]]
-    lines += ["", f"_{b['healthy_summary']}_", "", "Sources: " + ", ".join(b["citations"]), ""]
+    lines += ["", f"_{b['healthy_summary']}_", "", "Sources: " + ", ".join(b["citations"]), "", CHAT_HINT, ""]
     return "\n".join(lines)
 
 
@@ -127,11 +190,15 @@ def render_slack(b):
     """Slack Block Kit message."""
     if b["status"] == "all_clear":
         return {"text": b["headline"], "blocks": [
-            {"type": "section", "text": {"type": "mrkdwn", "text": f":white_check_mark: *{b['headline']}*\n{b['healthy_summary']}"}}]}
+            {"type": "section", "text": {"type": "mrkdwn", "text": f":white_check_mark: *{b['headline']}*\n{b['healthy_summary']}"}},
+            {"type": "context", "elements": [{"type": "mrkdwn", "text": CHAT_HINT}]}]}
     plan = "\n".join(f"• *{a['type'].replace('_', ' ')}* {a['quantity']:g} from {a['source']}, arrives {a['arrival']}"
                      for a in b["recommended_plan"])
-    sections = [
-        f":rotating_light: *{b['headline']}*",
+    sections = [f":rotating_light: *{b['headline']}*"]
+    if b.get("other_findings"):
+        sections.append(f"*{len(b['other_findings'])} more alert(s): resolve this one first*\n"
+                        + "\n".join(f"• {o}" for o in b["other_findings"]))
+    sections += [
         f"*Recommended plan*\n{plan}\n_{b['result_after_plan']}_",
         f"*Fallback*\n{b['fallback']}",
         f"*Why*\n{b['cause']}\nAffected: " + "; ".join(b["affected_demand"]),
@@ -141,4 +208,5 @@ def render_slack(b):
     blocks = [{"type": "section", "text": {"type": "mrkdwn", "text": s}} for s in sections]
     blocks.append({"type": "context", "elements": [
         {"type": "mrkdwn", "text": f"{b['healthy_summary']} · Assumptions: " + "; ".join(b["assumptions_used"])}]})
+    blocks.append({"type": "context", "elements": [{"type": "mrkdwn", "text": CHAT_HINT}]})
     return {"text": b["headline"], "blocks": blocks}

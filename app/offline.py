@@ -12,8 +12,8 @@ def _g(x):
 def build_briefing(session):
     risk = session.call("check_stock_risk", {})["ok"]
     plants = risk["materialPlants"]
-    flagged = [m for m in plants if m["tier"] in ("critical", "warning")]
-    flagged.sort(key=lambda m: m["tier"] != "critical")
+    by_id = {m["materialPlantId"]: m for m in plants}
+    flagged = [by_id[mp_id] for mp_id in risk["findingOrder"]]
     healthy = [m for m in plants if m not in flagged]
     healthy_summary = (f"{len(healthy)} other material-plants checked: "
                        + ", ".join(f"{m['materialPlantId']} {m['tier']}" for m in healthy) + ".")
@@ -23,6 +23,10 @@ def build_briefing(session):
 
     mp = flagged[0]
     mp_id = mp["materialPlantId"]
+    others = [_finding_line(m) for m in flagged[1:]]
+    next_steps = ("Resolve this alert first, then run `python -m app chat` and ask for the next alert; "
+                  "stock promised here is reserved when the next one is planned." if others else
+                  "Approve the recommended plan; re-run the check after the orders are booked.")
     why = mp["why"]
     plan = session.call("rank_resolution_options", {"material_plant_id": mp_id})["ok"]
     session.call("find_transfer_options", {"material_plant_id": mp_id})
@@ -52,6 +56,7 @@ def build_briefing(session):
                 "result_after_plan": "No premium spend: only forecast demand or safety stock is affected.",
                 "options_considered": ["Re-plan the forecast or place a normal replenishment order."],
                 "fallback": "Re-check on the next run.", "assumptions_used": _assumptions(risk, plan),
+                "other_findings": others, "next_steps": next_steps,
                 "healthy_summary": healthy_summary, "citations": [mp_id]}
 
     primary, result = plan["primary"], plan["resultAfterPlan"]
@@ -94,12 +99,22 @@ def build_briefing(session):
         "options_considered": options,
         "fallback": _fallback(plan["fallback"]),
         "watch": watch,
+        "other_findings": others,
+        "next_steps": next_steps,
         "assumptions_used": _assumptions(risk, plan),
         "healthy_summary": healthy_summary,
         "citations": sorted({mp_id, *[r["requirementId"] for r in short["requirements"]],
                              *[c.get("eventId") or c["objectId"] for c in why["vendorChanges"]],
                              "rules/resolution-order.md", "rules/alerting.md"}),
     }
+
+
+def _finding_line(m):
+    short = m["committedShortfall"]
+    if short["total"]:
+        return (f"{m['materialPlantId']} ({m['material']}, {m['plant']}): {m['tier']}, "
+                f"{_g(short['total'])} committed short by {short['requirements'][-1]['date']}")
+    return f"{m['materialPlantId']} ({m['material']}, {m['plant']}): {m['tier']}, below safety stock"
 
 
 def _fallback(fallback):

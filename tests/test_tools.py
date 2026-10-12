@@ -63,6 +63,13 @@ class ToolsTest(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertIn("error", self.session.call("read_context", {"path": path}))
 
+    def test_answer_is_grounded(self):
+        self.session.call("check_stock_risk", {"material_plant_id": "MP-1010-8891"})
+        ok = self.session.call("answer", {"text": "MP-1010-8891 is 200 short by 2026-09-18.", "citations": ["MREQ-7002"]})
+        self.assertTrue(ok["ok"]["accepted"])
+        bad = self.session.call("answer", {"text": "MP-1010-8891 is 175 short.", "citations": []})
+        self.assertIn("number 175 does not appear in any tool output", bad["ok"]["problems"])
+
     def test_outputs_are_recorded_as_evidence(self):
         self.session.call("check_stock_risk", {"material_plant_id": "MP-1010-8891"})
         self.assertEqual(len(self.session.evidence), 1)

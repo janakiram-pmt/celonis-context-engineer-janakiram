@@ -139,6 +139,13 @@ class DecisionsTest(unittest.TestCase):
     def test_incumbent_is_last_resort(self):
         self.assertIn("Rheinmetall", self.plan["lastResort"][0]["name"])
 
+    def test_finding_order_lists_flagged_material_plants(self):
+        self.assertEqual(self.d.check_stock_risk()["findingOrder"], [FRANKFURT])
+
+    def test_reserved_stock_reduces_spare(self):
+        option = self.d.find_transfer_options(FRANKFURT, reserved=[{"from": LEIPZIG, "quantity": 160}])["options"][0]
+        self.assertEqual((option["spare"], option["reservedForEarlierPlans"]), (0, 160))
+
     def test_results_carry_assumptions(self):
         names = {a["name"] for a in self.plan["assumptions_used"]}
         self.assertLessEqual({"analysis date", "transfer lead time", "order processing time", "backlog"}, names)

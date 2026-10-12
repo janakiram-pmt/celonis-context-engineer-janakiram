@@ -43,3 +43,5 @@
 _4 other material-plants checked: MP-1010-8892 quiet, MP-1020-7400 quiet, MP-1020-8891 quiet, MP-1030-8892 quiet._
 
 Sources: EVT-0006, MP-1010-8891, MREQ-7001, MREQ-7002, rules/alerting.md, rules/resolution-order.md
+
+Questions? Run `python -m app chat` (e.g. 'any other alerts today?', 'why not ask Rheinmetall to expedite?', 'plan the next alert').

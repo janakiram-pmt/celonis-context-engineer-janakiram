@@ -331,10 +331,20 @@ class Decisions:
             }
             if tier in ("critical", "warning"):
                 result["why"] = self._why(mp, demand, supply, overdue, horizon, tier)
+                first = (committed[0]["date"] if committed else
+                         min([s["date"] for s in self._shortfalls(timeline, horizon)] + [breach["firstDate"]]))
+                short_ids = {s["requirementId"] for s in self._shortfalls(timeline, horizon)}
+                priority = min([PRIORITY_RANK.get(d["priority"], len(PRIORITY_RANK))
+                                for d in demand if d["sourceId"] in short_ids] or [len(PRIORITY_RANK)])
+                result["_order"] = (0 if tier == "critical" else 1, first, priority, mp_id)
             results.append(result)
+        order = sorted((r for r in results if "_order" in r), key=lambda r: r["_order"])
+        for r in results:
+            r.pop("_order", None)
         return _plain({
             "analysisDate": self.today,
             "materialPlants": results,
+            "findingOrder": [r["materialPlantId"] for r in order],
             "assumptions_used": self._assumptions("near-term horizon", "order processing time", "same-day ordering",
                                                   "backlog", "type decides commitment", "north of ninety percent",
                                                   "overdue supply", "past-due demand"),
@@ -516,10 +526,21 @@ class Decisions:
                                                   "north of ninety percent"),
         })
 
-    def _spare(self, sender):
-        """Spare stock of a sending material-plant (concepts/spare-stock.md)."""
+    def _reservation(self, quantity):
+        """Stock already promised to an earlier plan, taken out on the analysis date."""
+        return {"date": self.today, "quantity": quantity, "sourceType": "Reservation",
+                "sourceId": "RESERVED for an earlier plan", "requirementType": "Transfer"}
+
+    @staticmethod
+    def _reserved_from(reserved, mp_id):
+        return sum(r["quantity"] for r in reserved or [] if r["from"] == mp_id)
+
+    def _spare(self, sender, reserved_qty=0):
+        """Spare stock of a sending material-plant (concepts/spare-stock.md), after earlier reservations."""
         mp_id = sender["materialPlantId"]
         demand, supply = self._demand(mp_id), self._open_supply(mp_id)
+        if reserved_qty:
+            demand = demand + [self._reservation(reserved_qty)]
         timeline = self._project(sender, demand, supply)
         next_arrival = min((s["date"] for s in supply), default=None)
         if next_arrival is not None:
@@ -530,16 +551,18 @@ class Decisions:
         return {"spare": max(0, low["balance"] - sender["safetyStock"]), "limitedBy": low["sourceId"],
                 "windowEnd": next_arrival}
 
-    def find_transfer_options(self, material_plant_id):
-        """Who can spare stock of the same material?"""
+    def find_transfer_options(self, material_plant_id, reserved=None):
+        """Who can spare stock of the same material? `reserved`: [{from, quantity}] already promised elsewhere."""
         target = self._material_plant(material_plant_id)
         senders = self._rows("SELECT * FROM MaterialPlant WHERE materialId = ? AND materialPlantId != ? "
                              "ORDER BY materialPlantId", (target["materialId"], material_plant_id))
         options = []
         for s in senders:
-            spare = self._spare(s)
+            held = self._reserved_from(reserved, s["materialPlantId"])
+            spare = self._spare(s, held)
             options.append({"fromMaterialPlantId": s["materialPlantId"], "plant": f"{s['plantId']} {s['plantName']}",
-                            "onHand": s["onHandQuantity"], "safetyStock": s["safetyStock"], **spare,
+                            "onHand": s["onHandQuantity"], "safetyStock": s["safetyStock"],
+                            "reservedForEarlierPlans": held, **spare,
                             "arrival": self.today + timedelta(days=self.transfer_days)})
         return _plain({"analysisDate": self.today, "toMaterialPlantId": material_plant_id, "options": options,
                        "assumptions_used": self._assumptions("transfer lead time", "same-day ordering", "backlog")})
@@ -566,8 +589,12 @@ class Decisions:
                        "vendors": vendors,
                        "assumptions_used": self._assumptions("order processing time", "north of ninety percent")})
 
-    def rank_resolution_options(self, material_plant_id):
-        """Best plan to close the committed gap, a fallback, and whether the plan holds."""
+    def rank_resolution_options(self, material_plant_id, reserved=None):
+        """Best plan to close the committed gap, a fallback, and whether the plan holds.
+
+        `reserved`: transfers already promised to earlier plans ([{from, quantity}]), so the
+        same stock is never promised twice.
+        """
         mp = self._material_plant(material_plant_id)
         demand, supply = self._demand(material_plant_id), self._open_supply(material_plant_id)
         horizon, _ = self._horizon(material_plant_id, supply or self._overdue_supply(material_plant_id))
@@ -581,7 +608,7 @@ class Decisions:
 
         transfers = []
         remaining = gap
-        for t in sorted(self.find_transfer_options(material_plant_id)["options"], key=lambda o: -o["spare"]):
+        for t in sorted(self.find_transfer_options(material_plant_id, reserved)["options"], key=lambda o: -o["spare"]):
             if remaining > 0 and t["spare"] > 0 and _d(t["arrival"]) <= last_need:
                 qty = min(t["spare"], remaining)
                 transfers.append({"type": "transfer", "from": t["fromMaterialPlantId"], "quantity": qty,
@@ -653,7 +680,7 @@ class Decisions:
         if primary:
             tier, breach = self._tier(mp, primary["timeline"], horizon)
             result = {"closesCommittedGap": primary["closesGap"], "tier": tier, "safetyStockBreach": breach,
-                      "timeline": primary["timeline"], "recheck": self._recheck(primary["actions"], vendor_report)}
+                      "timeline": primary["timeline"], "recheck": self._recheck(primary["actions"], vendor_report, reserved)}
         strip = lambda c: {k: v for k, v in c.items() if k not in ("timeline", "preferenceRank")} if c else None
         return _plain({
             "analysisDate": self.today, "materialPlantId": material_plant_id,
@@ -661,6 +688,7 @@ class Decisions:
             "primary": strip(primary), "resultAfterPlan": result, "fallback": strip(fallback),
             "lastResort": [r for r in rejected if r["name"].startswith("incumbent")],
             "rejected": [r for r in rejected if not r["name"].startswith("incumbent")],
+            "reservedForEarlierPlans": reserved or [],
             "assumptions_used": assumptions,
         })
 
@@ -691,7 +719,7 @@ class Decisions:
                  for a in actions]
         return self._project(mp, demand, supply + extra)
 
-    def _recheck(self, actions, vendor_report):
+    def _recheck(self, actions, vendor_report, reserved=None):
         """Re-check after the plan: senders stay at or above safety stock; vendors eligible."""
         senders = []
         for a in actions:
@@ -701,6 +729,9 @@ class Decisions:
             demand = self._demand(a["from"]) + [{"date": self.today, "quantity": a["quantity"],
                                                  "sourceType": "PlannedTransfer", "sourceId": "TRANSFER out",
                                                  "requirementType": "Transfer"}]
+            held = self._reserved_from(reserved, a["from"])
+            if held:
+                demand.append(self._reservation(held))
             supply = self._open_supply(a["from"])
             timeline = self._project(sender, demand, supply)
             horizon, _ = self._horizon(a["from"], supply)

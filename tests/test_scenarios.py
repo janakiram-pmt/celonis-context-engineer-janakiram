@@ -14,7 +14,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from app import decisions  # noqa: E402
+from app import briefing, decisions, offline  # noqa: E402
+from app.tools import Session  # noqa: E402
 
 SOURCE = json.loads((ROOT / "data" / "mock_data_schema.json").read_text())
 FRANKFURT = "MP-1010-8891"
@@ -122,6 +123,20 @@ class ScenarioTest(unittest.TestCase):
         self.assertEqual([s["requirementId"] for s in fr["otherShortfall"]], ["MREQ-7003"])
         self.assertEqual(d.rank_resolution_options(FRANKFURT)["status"], "no_committed_shortfall")
 
+    def test_warning_briefing_is_accepted_with_no_spend(self):
+        def change(data):
+            line_on_time(data)
+            record(data, "MaterialRequirements", "requirementId", "MREQ-7003").update(
+                requirementDate="2026-09-20", requirementQuantity=600)
+        session = Session(self.build(change))
+        b = offline.build_briefing(session)
+        self.assertEqual((b["shortfall_quantity"], b["recommended_plan"]), (0, []))
+        result = session.call("submit_briefing", {"briefing": b})["ok"]
+        self.assertTrue(result["accepted"], result.get("problems"))
+        b["recommended_plan"] = [{"type": "alternate_vendor", "quantity": 400, "source": "V-2002", "arrival": "2026-09-15"}]
+        rejected = session.call("submit_briefing", {"briefing": b})["ok"]
+        self.assertIn("no committed shortfall: recommended_plan must be empty (no premium spend)", rejected["problems"])
+
     def test_overdue_supply_is_not_counted(self):
         def change(data):
             line_on_time(data)
@@ -182,6 +197,46 @@ class ScenarioTest(unittest.TestCase):
         periods = [(q["start"], q["end"]) for q in breach["periods"] if q["inHorizon"]]
         self.assertEqual(periods, [("2026-09-04", "2026-09-06"), ("2026-09-16", "2026-09-25")])
         self.assertEqual(breach["finalRestoration"], "2026-09-25")
+
+    def test_competing_alerts_never_double_book_transfer_stock(self):
+        d = self.build(munich_needs_housings)
+        risk = d.check_stock_risk()
+        self.assertEqual(risk["findingOrder"], ["MP-1030-8891", FRANKFURT])  # Munich is short first (09-14)
+
+        session = Session(d)
+        munich = session.call("rank_resolution_options", {"material_plant_id": "MP-1030-8891"})["ok"]
+        frankfurt = session.call("rank_resolution_options", {"material_plant_id": FRANKFURT})["ok"]
+        from_leipzig = [a["quantity"] for plan in (munich, frankfurt)
+                        for a in plan["primary"]["actions"] if a.get("from") == "MP-1020-8891"]
+        self.assertEqual(from_leipzig, [100, 60])           # 160 spare, split in finding order
+        self.assertLessEqual(sum(from_leipzig), 160)
+        self.assertTrue(frankfurt["resultAfterPlan"]["recheck"]["holds"])
+        self.assertEqual([r["quantity"] for r in frankfurt["reservedForEarlierPlans"]], [100])
+
+    def test_briefing_lists_every_alert(self):
+        session = Session(self.build(munich_needs_housings))
+        b = offline.build_briefing(session)
+        self.assertEqual(b["material_plant_id"], "MP-1030-8891")
+        self.assertTrue(any(FRANKFURT in line for line in b["other_findings"]))
+        self.assertEqual(briefing.validate(b, session.evidence, session.plans["MP-1030-8891"], session.last_risk), [])
+        b["other_findings"] = []
+        self.assertIn(f"other_findings must list {FRANKFURT}",
+                      briefing.validate(b, session.evidence, session.plans["MP-1030-8891"], session.last_risk))
+
+
+def munich_needs_housings(data):
+    """A second bearing-housing alert at Munich, short before Frankfurt, also able to use Leipzig's stock."""
+    data["objects"]["MaterialPlant"]["records"].append({
+        "materialPlantId": "MP-1030-8891", "materialId": "MAT-8891", "materialDescription": "Bearing Housing, Cast",
+        "plantId": "1030", "plantName": "Munich Assembly", "baseUnit": "EA", "onHandQuantity": 0,
+        "safetyStock": 20, "reorderPoint": 40, "standardCost": 42.5})
+    data["objects"]["MaterialRequirements"]["records"].append({
+        "requirementId": "MREQ-7050", "materialPlantId": "MP-1030-8891", "requirementType": "ProductionOrder",
+        "requirementQuantity": 100, "requirementDate": "2026-09-14", "priority": "High", "status": "Open"})
+    data["events"]["records"].append({
+        "eventId": "EVT-0050", "objectType": "MaterialRequirements", "objectId": "MREQ-7050",
+        "activity": "Requirement Registered", "timestamp": "2026-09-02T06:00:00Z", "attributes": {}})
+    record(data, "Vendor", "vendorId", "V-2002")["approvedForMaterials"].append("MP-1030-8891")
 
 
 if __name__ == "__main__":

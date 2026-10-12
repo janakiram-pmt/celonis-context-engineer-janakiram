@@ -78,7 +78,8 @@ class BriefingTest(unittest.TestCase):
         self.assertIn("python -m app chat", json.dumps(briefing.render_slack(self.good)))
 
     def test_renders_markdown_and_slack(self):
-        self.assertIn("160 from MP-1020-8891", briefing.render_markdown(self.good))
+        self.assertIn("160 from 1020 Leipzig Distribution (MP-1020-8891)", briefing.render_markdown(self.good))
+        self.assertIn("Bavaria Precision Parts AG (V-2002)", json.dumps(briefing.render_slack(self.good)))
         slack = briefing.render_slack(self.good)
         self.assertEqual(slack["text"], self.good["headline"])
         self.assertTrue(slack["blocks"])

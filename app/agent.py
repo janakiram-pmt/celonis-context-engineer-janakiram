@@ -24,7 +24,8 @@ MAX_STEPS = 20
 MAX_REJECTIONS = 2
 
 COMMON = """Every number, date, and record id you write must come from a tool output; never calculate numbers \
-yourself. If a submission is rejected, fix the listed problems and submit again.
+yourself. When you mention a plant, vendor, or material, give its name and id, e.g. "Leipzig Distribution \
+(MP-1020-8891)", "Bavaria Precision Parts AG (V-2002)"; in a recommended plan, put the name in source_name. If a submission is rejected, fix the listed problems and submit again.
 You can call several tools in one turn when they don't depend on each other (for example, reading several rule files).
 The analysis date is the dataset's as-of date returned by the tools, not today's real date."""
 

@@ -134,7 +134,8 @@ class DecisionsTest(unittest.TestCase):
         fallback = self.plan["fallback"]
         self.assertEqual(fallback["name"], "transfer + split")
         self.assertEqual([(r["requirementId"], r["uncovered"]) for r in fallback["remaining"]], [("MREQ-7002", 40)])
-        self.assertEqual(fallback["waitsFor"], {"lineId": "PDOC-4500001234-10", "date": "2026-09-25"})
+        self.assertEqual((fallback["waitsFor"]["lineId"], fallback["waitsFor"]["date"], fallback["waitsFor"]["vendorName"]),
+                         ("PDOC-4500001234-10", "2026-09-25", "Rheinmetall Components GmbH"))
 
     def test_incumbent_is_last_resort(self):
         self.assertIn("Rheinmetall", self.plan["lastResort"][0]["name"])

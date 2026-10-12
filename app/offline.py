@@ -16,7 +16,8 @@ def build_briefing(session):
     flagged = [by_id[mp_id] for mp_id in risk["findingOrder"]]
     healthy = [m for m in plants if m not in flagged]
     healthy_summary = (f"{len(healthy)} other material-plants checked: "
-                       + ", ".join(f"{m['materialPlantId']} {m['tier']}" for m in healthy) + ".")
+                       + ", ".join(f"{m['material']} at {m['plant']} ({m['materialPlantId']}) {m['tier']}"
+                                   for m in healthy) + ".")
     if not flagged:
         return {"status": "all_clear", "headline": f"All {len(plants)} material-plants are covered.",
                 "healthy_summary": healthy_summary, "citations": [m["materialPlantId"] for m in plants]}
@@ -37,7 +38,7 @@ def build_briefing(session):
                 for r in short["requirements"]]
     causes = []
     for c in why["vendorChanges"]:
-        reliability = (f"{c['vendorName']}, on-time {c['onTimeDeliveryRate']:.2f}, "
+        reliability = (f"{c['vendorName']} ({c['vendorId']}), on-time {c['onTimeDeliveryRate']:.2f}, "
                        + ("eligible" if c["vendorEligible"] else "fails vendor eligibility"))
         if c["type"] == "overdue":
             causes.append(f"{c['objectId']} ({reliability}) was due {c['before']} and is still not received.")
@@ -61,13 +62,16 @@ def build_briefing(session):
 
     primary, result = plan["primary"], plan["resultAfterPlan"]
     steps = [{"type": a["type"], "quantity": a["quantity"], "source": a.get("from") or a.get("vendorId"),
-              "arrival": a["arrival"]} for a in primary["actions"]]
-    senders = "; ".join(f"{s['materialPlantId']} lowest {_g(s['lowest'])} vs safety stock {_g(s['safetyStock'])}"
+              "source_name": a.get("fromName") or a.get("vendorName"), "arrival": a["arrival"]}
+             for a in primary["actions"]]
+    names = {m["materialPlantId"]: m["plant"] for m in plants}
+    senders = "; ".join(f"{names.get(s['materialPlantId'], '')} ({s['materialPlantId']}) lowest {_g(s['lowest'])} "
+                        f"vs safety stock {_g(s['safetyStock'])}"
                         f" ({'holds' if s['holds'] else 'breaks'})" for s in result["recheck"]["senders"])
     result_text = ("Closes the committed gap." if result["closesCommittedGap"] else
                    "Does not fully close the committed gap: " + ", ".join(
                        f"{r['requirementId']} {_g(r['uncovered'])} short" for r in primary["remaining"]) + ".")
-    result_text += f" {mp_id} tier after the plan: {result['tier']}."
+    result_text += f" {mp['plant']} ({mp_id}) tier after the plan: {result['tier']}."
     if senders:
         result_text += f" Sender re-check: {senders}."
 
@@ -79,11 +83,13 @@ def build_briefing(session):
     breach = result.get("safetyStockBreach") or {}
     for period in breach.get("periods", []):
         if period["inHorizon"] and period["start"] != risk["analysisDate"]:
-            watch.append(f"{mp_id} below safety stock from {period['start']} to {period['end'] or 'beyond the data'}"
+            watch.append(f"{mp['plant']} ({mp_id}) below safety stock from {period['start']} to "
+                         f"{period['end'] or 'beyond the data'}"
                          + (f", restored by {period['restoredBy']}" if period["restoredBy"] else "") + ".")
     for c in why["vendorChanges"]:
         if not c["vendorEligible"]:
-            watch.append(f"Recovery depends on {c['vendorName']} (on-time {c['onTimeDeliveryRate']:.2f}).")
+            watch.append(f"Recovery depends on {c['vendorName']} ({c['vendorId']}, on-time "
+                         f"{c['onTimeDeliveryRate']:.2f}).")
 
     return {
         "status": "alert",
@@ -125,7 +131,8 @@ def _fallback(fallback):
     if fallback.get("split"):
         left = ", ".join(f"{r['requirementId']} {_g(r['uncovered'])}" for r in fallback["remaining"])
         waits = fallback.get("waitsFor")
-        tail = f", waiting for {waits['lineId']} on {waits['date']}" if waits else ""
+        tail = (f", waiting for {waits['lineId']} from {waits['vendorName']} ({waits['vendorId']}) on {waits['date']}"
+                if waits else "")
         return f"{fallback['name']}: cover what arrives in time; still short {left}{tail}."
     actions = "; ".join(f"{a['type'].replace('_', ' ')} {_g(a['quantity'])} from {a.get('vendorName') or a.get('from')}"
                         for a in fallback.get("actions", []))

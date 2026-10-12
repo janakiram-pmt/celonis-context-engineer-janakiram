@@ -29,6 +29,7 @@ SCHEMA = {
                 "type": {"type": "string", "enum": ACTION_TYPES},
                 "quantity": {"type": "number"},
                 "source": {"type": "string", "description": "Sending material-plant id or vendor id."},
+                "source_name": {"type": "string", "description": "Plant or vendor name, e.g. 'Leipzig Distribution'."},
                 "arrival": {"type": "string"},
             }, "required": ["type", "quantity", "source", "arrival"]},
         },
@@ -163,17 +164,23 @@ def validate(briefing, evidence_texts, plan=None, risk=None):
     return problems
 
 
+def _named(action):
+    """'Leipzig Distribution (MP-1020-8891)' when a name is known, else the id."""
+    name = action.get("source_name")
+    return f"{name} ({action['source']})" if name else action["source"]
+
+
 def render_markdown(b):
     if b["status"] == "all_clear":
         return f"# Supply risk briefing: all clear\n\n{b['headline']}\n\n{b['healthy_summary']}\n\n{CHAT_HINT}\n"
-    lines = [f"# Supply risk briefing: {b['material_plant_id']}", "", f"**{b['headline']}**", ""]
+    lines = ["# Supply risk briefing", "", f"**{b['headline']}**", ""]
     if b.get("other_findings"):
         lines += [f"**You have {len(b['other_findings'])} more alert(s). Resolve this one first, then run "
                   "`python -m app chat` and ask for the next alert:**"]
         lines += [f"- {o}" for o in b["other_findings"]] + [""]
     lines += ["## Recommended plan"]
     for a in b["recommended_plan"]:
-        lines.append(f"- **{a['type'].replace('_', ' ')}**: {a['quantity']:g} from {a['source']}, arrives {a['arrival']}")
+        lines.append(f"- **{a['type'].replace('_', ' ')}**: {a['quantity']:g} from {_named(a)}, arrives {a['arrival']}")
     lines += ["", f"**Result:** {b['result_after_plan']}", "", f"**Fallback:** {b['fallback']}", "",
               "## Why", f"- **Shortfall:** {b['shortfall_quantity']:g} by {b['shortfall_by_date']}",
               f"- **Cause:** {b['cause']}", "- **Affected demand:**"]
@@ -192,7 +199,7 @@ def render_slack(b):
         return {"text": b["headline"], "blocks": [
             {"type": "section", "text": {"type": "mrkdwn", "text": f":white_check_mark: *{b['headline']}*\n{b['healthy_summary']}"}},
             {"type": "context", "elements": [{"type": "mrkdwn", "text": CHAT_HINT}]}]}
-    plan = "\n".join(f"• *{a['type'].replace('_', ' ')}* {a['quantity']:g} from {a['source']}, arrives {a['arrival']}"
+    plan = "\n".join(f"• *{a['type'].replace('_', ' ')}* {a['quantity']:g} from {_named(a)}, arrives {a['arrival']}"
                      for a in b["recommended_plan"])
     sections = [f":rotating_light: *{b['headline']}*"]
     if b.get("other_findings"):

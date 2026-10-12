@@ -445,6 +445,7 @@ class Decisions:
         docs = {r["purchaseDocumentId"]: r for r in self._rows("SELECT * FROM PurchaseDocument")}
         reqs = {r["requirementId"]: r for r in self._rows("SELECT * FROM MaterialRequirements")}
         prs = {r["purchaseRequirementId"]: r for r in self._rows("SELECT * FROM PurchaseRequirement")}
+        vendor_names = {r["vendorId"]: r["name"] for r in self._rows("SELECT vendorId, name FROM Vendor")}
 
         changes = []
         for e in self._rows("SELECT * FROM Event ORDER BY timestamp, eventId"):
@@ -461,7 +462,7 @@ class Decisions:
 
             change = {"eventId": e["eventId"], "timestamp": e["timestamp"], "activity": e["activity"],
                       "objectType": e["objectType"], "objectId": e["objectId"],
-                      "materialPlantId": mp, "vendorId": vendor,
+                      "materialPlantId": mp, "vendorId": vendor, "vendorName": vendor_names.get(vendor),
                       "ageDays": (self.today - _d(e["timestamp"])).days,
                       "before": None, "after": None, "reason": attrs.get("reason")}
             if e["activity"] == "Delivery Date Changed":
@@ -611,7 +612,8 @@ class Decisions:
         for t in sorted(self.find_transfer_options(material_plant_id, reserved)["options"], key=lambda o: -o["spare"]):
             if remaining > 0 and t["spare"] > 0 and _d(t["arrival"]) <= last_need:
                 qty = min(t["spare"], remaining)
-                transfers.append({"type": "transfer", "from": t["fromMaterialPlantId"], "quantity": qty,
+                transfers.append({"type": "transfer", "from": t["fromMaterialPlantId"], "fromName": t["plant"],
+                                  "quantity": qty,
                                   "arrival": _d(t["arrival"]), "limitedBy": t["limitedBy"],
                                   "cost": "stock already owned; no purchase cost"})
                 remaining -= qty
@@ -662,7 +664,9 @@ class Decisions:
         fallback = next((c for c in candidates[1:] if not ({a.get("vendorId") for a in c["actions"]} & primary_vendors)), None)
         if fallback and fallback.get("split"):
             waits_for = min((s for s in supply), key=lambda s: s["date"], default=None)
-            fallback["waitsFor"] = {"lineId": waits_for["sourceId"], "date": waits_for["date"]} if waits_for else None
+            fallback["waitsFor"] = ({"lineId": waits_for["sourceId"], "date": waits_for["date"],
+                                     "vendorId": waits_for["vendorId"], "vendorName": self._vendor(waits_for["vendorId"])["name"]}
+                                    if waits_for else None)
 
         if primary and fallback is None:
             fallback = self._last_resort_fallback(primary, vendor_report)

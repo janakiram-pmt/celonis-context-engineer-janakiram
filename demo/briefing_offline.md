@@ -1,18 +1,18 @@
-# Supply risk briefing: MP-1010-8891
+# Supply risk briefing
 
 **Bearing Housing, Cast at 1010 Frankfurt Assembly (MP-1010-8891): 200 units of committed demand uncovered by 2026-09-18.**
 
 ## Recommended plan
-- **transfer**: 160 from MP-1020-8891, arrives 2026-09-06
-- **alternate vendor**: 40 from V-2002, arrives 2026-09-15
+- **transfer**: 160 from 1020 Leipzig Distribution (MP-1020-8891), arrives 2026-09-06
+- **alternate vendor**: 40 from Bavaria Precision Parts AG (V-2002), arrives 2026-09-15
 
-**Result:** Closes the committed gap. MP-1010-8891 tier after the plan: watch. Sender re-check: MP-1020-8891 lowest 60 vs safety stock 60 (holds).
+**Result:** Closes the committed gap. 1010 Frankfurt Assembly (MP-1010-8891) tier after the plan: watch. Sender re-check: 1020 Leipzig Distribution (MP-1020-8891) lowest 60 vs safety stock 60 (holds).
 
-**Fallback:** transfer + split: cover what arrives in time; still short MREQ-7002 40, waiting for PDOC-4500001234-10 on 2026-09-25.
+**Fallback:** transfer + split: cover what arrives in time; still short MREQ-7002 40, waiting for PDOC-4500001234-10 from Rheinmetall Components GmbH (V-2001) on 2026-09-25.
 
 ## Why
 - **Shortfall:** 200 by 2026-09-18
-- **Cause:** PDOC-4500001234-10 (Rheinmetall Components GmbH, on-time 0.72, fails vendor eligibility) moved from 2026-09-11 to 2026-09-25 (Vendor capacity constraint, EVT-0006). Had the vendor kept its original promise (date, or delivery of an overdue line), there would be no gap. Gap as promised: 0; now: 200.
+- **Cause:** PDOC-4500001234-10 (Rheinmetall Components GmbH (V-2001), on-time 0.72, fails vendor eligibility) moved from 2026-09-11 to 2026-09-25 (Vendor capacity constraint, EVT-0006). Had the vendor kept its original promise (date, or delivery of an overdue line), there would be no gap. Gap as promised: 0; now: 200.
 - **Affected demand:**
   - MREQ-7001 (ProductionOrder, 2026-09-16, 60 short)
   - MREQ-7002 (SalesOrder, 2026-09-18, 140 short)
@@ -24,8 +24,8 @@
 - Last resort: incumbent expedite: Rheinmetall Components GmbH (on-time rate 0.72 is not above 0.90 (last resort only)).
 
 ## Watch
-- MP-1010-8891 below safety stock from 2026-09-16 to 2026-09-25, restored by PDOC-4500001234-10.
-- Recovery depends on Rheinmetall Components GmbH (on-time 0.72).
+- 1010 Frankfurt Assembly (MP-1010-8891) below safety stock from 2026-09-16 to 2026-09-25, restored by PDOC-4500001234-10.
+- Recovery depends on Rheinmetall Components GmbH (V-2001, on-time 0.72).
 
 ## Assumptions
 - analysis date: 2026-09-04
@@ -40,7 +40,7 @@
 - transfer lead time: 2 days
 - alternate vendor price: unknown; premium to be quoted
 
-_4 other material-plants checked: MP-1010-8892 quiet, MP-1020-7400 quiet, MP-1020-8891 quiet, MP-1030-8892 quiet._
+_4 other material-plants checked: Drive Shaft, Forged at 1010 Frankfurt Assembly (MP-1010-8892) quiet, Hydraulic Seal Kit at 1020 Leipzig Distribution (MP-1020-7400) quiet, Bearing Housing, Cast at 1020 Leipzig Distribution (MP-1020-8891) quiet, Drive Shaft, Forged at 1030 Munich Assembly (MP-1030-8892) quiet._
 
 Sources: EVT-0006, MP-1010-8891, MREQ-7001, MREQ-7002, rules/alerting.md, rules/resolution-order.md
 

@@ -1,39 +1,39 @@
 {
-  "text": "Bearing Housing, Cast at 1010 Frankfurt Assembly (MP-1010-8891): 200 units of committed demand uncovered by 2026-09-18.",
+  "text": "Frankfurt Assembly (MP-1010-8891) faces a critical committed shortfall of 200 EA of Bearing Housing, Cast starting 2026-09-16 and reaching 200 EA by 2026-09-18.",
   "blocks": [
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": ":rotating_light: *Bearing Housing, Cast at 1010 Frankfurt Assembly (MP-1010-8891): 200 units of committed demand uncovered by 2026-09-18.*"
+        "text": ":rotating_light: *Frankfurt Assembly (MP-1010-8891) faces a critical committed shortfall of 200 EA of Bearing Housing, Cast starting 2026-09-16 and reaching 200 EA by 2026-09-18.*"
       }
     },
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Recommended plan*\n\u2022 *transfer* 160 from 1020 Leipzig Distribution (MP-1020-8891), arrives 2026-09-06\n\u2022 *alternate vendor* 40 from Bavaria Precision Parts AG (V-2002), arrives 2026-09-15\n_Closes the committed gap. 1010 Frankfurt Assembly (MP-1010-8891) tier after the plan: watch. Sender re-check: 1020 Leipzig Distribution (MP-1020-8891) lowest 60 vs safety stock 60 (holds)._"
+        "text": "*Recommended plan*\n\u2022 *transfer* 160 from Leipzig Distribution (MP-1020-8891), arrives 2026-09-06\n\u2022 *alternate vendor* 40 from Bavaria Precision Parts AG (V-2002), arrives 2026-09-15\n_Primary plan closes the committed shortfall completely (0 EA remaining). Senders recheck holds: Leipzig Distribution (MP-1020-8891) remains quiet and stays at or above safety stock of 60 EA (lowest balance 60 EA on 2026-09-28). Alternate vendor Bavaria Precision Parts AG (V-2002) is approved and eligible. MP-1010-8891 tier shifts from critical to watch due to temporary safety stock breach until 2026-09-25._"
       }
     },
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Fallback*\ntransfer + split: cover what arrives in time; still short MREQ-7002 40, waiting for PDOC-4500001234-10 from Rheinmetall Components GmbH (V-2001) on 2026-09-25."
+        "text": "*Fallback*\nTransfer + split: Transfer 160 EA from Leipzig Distribution (MP-1020-8891) arriving 2026-09-06 to cover MREQ-7001 (60 EA) and partially cover MREQ-7002 (100 EA), leaving 40 EA of MREQ-7002 (SalesOrder, 2026-09-18) uncovered until delayed line PDOC-4500001234-10 from Rheinmetall Components GmbH (V-2001) arrives on 2026-09-25."
       }
     },
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Why*\nPDOC-4500001234-10 (Rheinmetall Components GmbH (V-2001), on-time 0.72, fails vendor eligibility) moved from 2026-09-11 to 2026-09-25 (Vendor capacity constraint, EVT-0006). Had the vendor kept its original promise (date, or delivery of an overdue line), there would be no gap. Gap as promised: 0; now: 200.\nAffected: MREQ-7001 (ProductionOrder, 2026-09-16, 60 short); MREQ-7002 (SalesOrder, 2026-09-18, 140 short)"
+        "text": "*Why*\nPurchase document line PDOC-4500001234-10 for 400 EA slipped 14 days from confirmed delivery date 2026-09-11 to 2026-09-25 due to 'Vendor capacity constraint' (Event EVT-0006 on 2026-09-01T07:45:00Z). Vendor Rheinmetall Components GmbH (V-2001) is unreliable with an on-time delivery rate of 0.72 (below required threshold of 0.90) and quality rating A.\nAffected: MREQ-7001 (ProductionOrder, 2026-09-16, 60 short); MREQ-7002 (SalesOrder, 2026-09-18, 140 short)"
       }
     },
     {
       "type": "section",
       "text": {
         "type": "mrkdwn",
-        "text": "*Watch*\n\u2022 1010 Frankfurt Assembly (MP-1010-8891) below safety stock from 2026-09-16 to 2026-09-25, restored by PDOC-4500001234-10.\n\u2022 Recovery depends on Rheinmetall Components GmbH (V-2001, on-time 0.72)."
+        "text": "*Watch*\n\u2022 MP-1010-8891 projected balance drops to 0 EA on 2026-09-18 (below safety stock of 150 EA) until Rheinmetall delivery arrives on 2026-09-25.\n\u2022 Bavaria Precision Parts AG (V-2002) unit price premium is not yet quoted; baseline is incumbent net price of 40.00 EUR per unit.\n\u2022 Sending plant Leipzig Distribution (MP-1020-8891) balance drops to its exact safety stock of 60 EA on 2026-09-28 prior to replenishment on 2026-10-02."
       }
     },
     {
@@ -41,7 +41,7 @@
       "elements": [
         {
           "type": "mrkdwn",
-          "text": "4 other material-plants checked: Drive Shaft, Forged at 1010 Frankfurt Assembly (MP-1010-8892) quiet, Hydraulic Seal Kit at 1020 Leipzig Distribution (MP-1020-7400) quiet, Bearing Housing, Cast at 1020 Leipzig Distribution (MP-1020-8891) quiet, Drive Shaft, Forged at 1030 Munich Assembly (MP-1030-8892) quiet. \u00b7 Assumptions: analysis date: 2026-09-04; near-term horizon: today + order processing time + avgLeadTimeDays of the vendor on the material-plant's open supply; if none, the shortest lead time among eligible approved vendors; if none is eligible, the longest lead time among approved vendors; order processing time: 2 days from deciding to buy until the PO is with the vendor; same-day ordering: demand is subtracted before supply is added on the same date; backlog: the balance may go negative; a missed requirement is still owed, and later supply fills it first; type decides commitment: requirementType decides committed (ProductionOrder, SalesOrder); priority only ranks within committed demand; north of ninety percent: strictly greater than 0.90; overdue supply: an open line whose confirmed date is before the analysis date is not counted until it is received; past-due demand: a requirement dated before the analysis date that isn't Covered is still owed and counts as due on the analysis date; transfer lead time: 2 days; alternate vendor price: unknown; premium to be quoted"
+          "text": "4 of 5 material-plants checked are healthy and require no action. \u00b7 Assumptions: analysis date: 2026-09-04 (index.md); near-term horizon: today + order processing time + avgLeadTimeDays of the vendor on the material-plant's open supply; if none, the shortest lead time among eligible approved vendors; if none is eligible, the longest lead time among approved vendors (rules/alerting.md); order processing time: 2 days from deciding to buy until the PO is with the vendor (rules/alerting.md); transfer lead time: 2 days (rules/transfer-limit.md); same-day ordering: demand is subtracted before supply is added on the same date (concepts/projected-stock.md); backlog: the balance may go negative; a missed requirement is still owed, and later supply fills it first (concepts/projected-stock.md); type decides commitment: requirementType decides committed (ProductionOrder, SalesOrder); priority only ranks within committed demand (concepts/committed-demand.md); north of ninety percent: strictly greater than 0.90 (rules/vendor-eligibility.md); alternate vendor price: unknown; premium to be quoted (rules/spending-policy.md); overdue supply: an open line whose confirmed date is before the analysis date is not counted until it is received (concepts/open-supply.md); past-due demand: a requirement dated before the analysis date that isn't Covered is still owed and counts as due on the analysis date (concepts/projected-stock.md)"
         }
       ]
     },

@@ -67,4 +67,7 @@ def converse(questions=None):
 
 
 if __name__ == "__main__":
-    main()
+    try:
+        main()
+    except RuntimeError as e:  # missing key, used-up quota: say so plainly, no traceback
+        sys.exit(f"Error: {e}")
